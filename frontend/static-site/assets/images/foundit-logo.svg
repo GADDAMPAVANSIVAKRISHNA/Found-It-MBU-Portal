@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect rx="28" width="120" height="120" fill="url(#g1)" />
+  <text x="50%" y="52%" font-family="Inter, Arial" font-weight="800" font-size="44" text-anchor="middle" fill="white" dominant-baseline="middle">FI</text>
+</svg>

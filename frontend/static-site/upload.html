@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upload — Found-It</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <header class="container header">
+    <div class="brand"><img src="assets/images/foundit-logo.svg" alt="Found-It"><h1>Found-It</h1></div>
+    <nav class="nav"><a href="feed.html">Feed</a><a href="upload.html">Upload</a><a href="dashboard.html">Dashboard</a></nav>
+  </header>
+
+  <main class="container" style="padding:40px 0">
+    <div class="card" style="max-width:720px;margin:0 auto">
+      <h2>Report Lost / Found Item</h2>
+      <form style="margin-top:12px;display:grid;gap:12px">
+        <select class="input"><option>Lost</option><option>Found</option></select>
+        <input class="input" type="text" placeholder="Item title" required>
+        <textarea class="input" rows="4" placeholder="Description"></textarea>
+        <input class="input" type="text" placeholder="Location (optional)">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="file" accept="image/*">
+          <button class="btn btn-primary" type="submit">Submit</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <footer class="container" style="padding:18px 0;text-align:center;color:var(--muted)">Found-It • Mohan Babu University</footer>
+</body>
+</html>

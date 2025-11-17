@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Feed — Found-It</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <header class="container header">
+    <div class="brand"><img src="assets/images/foundit-logo.svg" alt="Found-It"><h1>Found-It</h1></div>
+    <nav class="nav"><a href="index.html">Home</a><a href="feed.html">Feed</a><a href="upload.html">Upload</a><a href="dashboard.html">Dashboard</a></nav>
+  </header>
+
+  <main class="container">
+    <h2 style="margin-top:8px">Recent Reports</h2>
+    <div style="display:flex;gap:12px;margin:12px 0">
+      <input class="input" type="search" placeholder="Search items, keywords, locations..." style="flex:1">
+      <select style="padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--white)">
+        <option>All</option><option>Lost</option><option>Found</option>
+      </select>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+      <!-- card -->
+      <article class="card">
+        <div style="height:160px;background:linear-gradient(135deg,#0ea5e9,#7c3aed);border-radius:8px;margin-bottom:12px"></div>
+        <h3 style="margin:0 0 6px">Blue ID Card Holder</h3>
+        <p style="color:var(--muted);margin:0 0 8px">Found near Library • 10 Nov 2025</p>
+        <p style="color:var(--muted);font-size:14px">Student ID holder with '23102A...' inside.</p>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <span style="padding:6px 8px;border-radius:999px;background:rgba(16,185,129,0.12);color:#9ef2c8">Found</span>
+          <a class="link" href="item.html">View</a>
+        </div>
+      </article>
+
+      <!-- repeat cards -->
+      <article class="card">
+        <div style="height:160px;background:linear-gradient(135deg,#0ea5e9,#7c3aed);border-radius:8px;margin-bottom:12px"></div>
+        <h3 style="margin:0 0 6px">Black Backpack</h3>
+        <p style="color:var(--muted);margin:0 0 8px">Lost near Cafeteria • 14 Nov 2025</p>
+        <p style="color:var(--muted);font-size:14px">Contains a Lenovo laptop, charger, and a water bottle.</p>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <span style="padding:6px 8px;border-radius:999px;background:rgba(220,38,38,0.14);color:#ffb4b4">Lost</span>
+          <a class="link" href="item.html">View</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div style="height:160px;background:linear-gradient(135deg,#0ea5e9,#7c3aed);border-radius:8px;margin-bottom:12px"></div>
+        <h3 style="margin:0 0 6px">Keys with Blue Tag</h3>
+        <p style="color:var(--muted);margin:0 0 8px">Found near Parking Lot • 15 Nov 2025</p>
+        <p style="color:var(--muted);font-size:14px">3 keys on a blue acrylic tag. No ID attached.</p>
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <span style="padding:6px 8px;border-radius:999px;background:rgba(16,185,129,0.12);color:#9ef2c8">Found</span>
+          <a class="link" href="item.html">View</a>
+        </div>
+      </article>
+
+    </div>
+
+  </main>
+
+  <footer class="container" style="padding:18px 0;text-align:center;color:var(--muted)">Found-It • Mohan Babu University</footer>
+</body>
+</html>
