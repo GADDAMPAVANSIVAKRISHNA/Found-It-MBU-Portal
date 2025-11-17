@@ -45,3 +45,25 @@ html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Seg
 
 /* Responsive */
 @media (max-width:900px){.hero{flex-direction:column}.hero-right{width:100%}.login-card{width:92%}}
+
+/* Polished card animation and accessibility helpers */
+.card-logo{width:64px;height:64px;margin:0 auto 18px;display:block}
+.white-card{animation:cardEnter .6s cubic-bezier(.2,.9,.3,1) both}
+@keyframes cardEnter{
+  from{opacity:0;transform:translateY(18px) scale(.995)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+/* Focus ring for keyboard users */
+:focus{outline:none}
+button:focus,input:focus,select:focus,textarea:focus{outline:3px solid rgba(59,130,246,0.18);outline-offset:2px}
+
+/* Improved typography for forms */
+body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale }
+.white-card h2{letter-spacing:0.2px}
+
+/* Responsiveness tweaks for very small screens */
+@media (max-width:420px){
+  .white-card{padding:30px 18px;border-radius:12px}
+  .card-logo{width:48px;height:48px}
+}
