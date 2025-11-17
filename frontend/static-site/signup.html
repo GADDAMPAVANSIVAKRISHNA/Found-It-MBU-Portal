@@ -3,40 +3,64 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sign up — Found-It</title>
+  <title>Sign Up — Found-It</title>
   <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    .login-page{background-image:url('assets/images/login-bg.webp');background-size:cover;background-position:center;background-attachment:fixed}
+    .login-page::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);z-index:0}
+    .login-container{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:10;overflow-y:auto}
+    .white-card{background:#ffffff;border-radius:24px;padding:50px 40px;width:100%;max-width:500px;box-shadow:0 25px 60px rgba(0,0,0,0.3);text-align:center;margin:20px auto}
+    .white-card h2{color:#00396b;font-size:24px;margin:0 0 8px;font-weight:700}
+    .white-card p{color:#666;font-size:14px;margin:0 0 30px}
+    .icon{width:60px;height:60px;background:linear-gradient(135deg,#0066cc,#003399);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px}
+    .form-group{margin-bottom:16px;text-align:left}
+    .form-group label{display:block;color:#333;font-size:13px;font-weight:600;margin-bottom:6px}
+    .form-group input{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box}
+    .form-group input:focus{outline:none;border-color:#0066cc;box-shadow:0 0 0 3px rgba(0,102,204,0.1)}
+    .btn-login{width:100%;padding:12px;background:linear-gradient(135deg,#0066cc,#003399);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;margin-top:8px}
+    .btn-login:hover{background:linear-gradient(135deg,#0052a3,#002d7a)}
+    .signin-link{display:inline-block;color:#0066cc;text-decoration:none;font-size:13px;margin-top:12px;font-weight:600}
+    .signin-link:hover{text-decoration:underline}
+    .footer-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.5);padding:16px 20px;text-align:center;z-index:20;backdrop-filter:blur(8px)}
+    .footer-bar img{height:40px;margin-right:12px;vertical-align:middle;object-fit:contain}
+    .footer-bar p{color:#fff;font-size:13px;margin:0;display:inline-block;vertical-align:middle}
+  </style>
 </head>
-<body>
-  <header class="container header">
-    <div class="brand"><img src="assets/images/foundit-logo.svg" alt="Found-It logo"><h1>Found-It</h1></div>
-    <nav class="nav"><a href="index.html">Home</a><a href="feed.html">Feed</a><a href="login.html">Login</a></nav>
-  </header>
-
-  <main class="container" style="padding-top:48px;padding-bottom:48px">
-    <div class="card" style="max-width:720px;margin:0 auto">
-      <h2>Create your account</h2>
-      <p style="color:var(--muted)">Students must register using a <strong>@mbu.asia</strong> email address.</p>
-      <form style="margin-top:18px">
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
-          <input class="input" type="text" placeholder="Full name" required>
-          <input class="input" type="text" placeholder="SAP ID" required>
-          <input class="input" type="email" placeholder="you@mbu.asia" required>
-          <input class="input" type="tel" placeholder="Phone (optional)">
+<body class="login-page">
+  <div class="login-container">
+    <div class="white-card">
+      <div class="icon">🏠</div>
+      <h2>Create Account — Found-It</h2>
+      <p>Sign Up with MBU Email</p>
+      
+      <form>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" placeholder="Your full name" required>
         </div>
-
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">
-          <input class="input" type="password" placeholder="Password" required>
-          <input class="input" type="password" placeholder="Confirm password" required>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" placeholder="you@mbu.asia" required>
         </div>
-
-        <div style="margin-top:16px;display:flex;gap:12px;align-items:center">
-          <button class="btn btn-primary">Sign up</button>
-          <a href="login.html" class="btn btn-outline">Already have account?</a>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" placeholder="••••••••" required>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-login">Create Account</button>
+        <div style="margin-top:16px">
+          <p style="color:#666;font-size:13px;margin:0 0 8px">Already have an account? <a href="login.html" class="signin-link">Sign In</a></p>
         </div>
       </form>
     </div>
-  </main>
-
-  <footer class="container" style="padding:18px 0;text-align:center;color:var(--muted)">Found-It • Mohan Babu University</footer>
+  </div>
+  
+  <div class="footer-bar">
+    <img src="assets/images/mbu-logo.png" alt="MBU logo">
+    <p>Mohan Babu University — Exclusive access for @mbu.asia students</p>
+  </div>
 </body>
 </html>

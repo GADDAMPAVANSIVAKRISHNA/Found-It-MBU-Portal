@@ -5,35 +5,56 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Login — Found-It</title>
   <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    .login-page{background-image:url('assets/images/login-bg.webp');background-size:cover;background-position:center;background-attachment:fixed}
+    .login-page::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);z-index:0}
+    .login-container{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:10}
+    .white-card{background:#ffffff;border-radius:24px;padding:50px 40px;width:100%;max-width:500px;box-shadow:0 25px 60px rgba(0,0,0,0.3);text-align:center}
+    .white-card h2{color:#00396b;font-size:24px;margin:0 0 8px;font-weight:700}
+    .white-card p{color:#666;font-size:14px;margin:0 0 30px}
+    .icon{width:60px;height:60px;background:linear-gradient(135deg,#0066cc,#003399);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px}
+    .form-group{margin-bottom:16px;text-align:left}
+    .form-group label{display:block;color:#333;font-size:13px;font-weight:600;margin-bottom:6px}
+    .form-group input{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box}
+    .form-group input:focus{outline:none;border-color:#0066cc;box-shadow:0 0 0 3px rgba(0,102,204,0.1)}
+    .btn-login{width:100%;padding:12px;background:linear-gradient(135deg,#0066cc,#003399);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;margin-top:8px}
+    .btn-login:hover{background:linear-gradient(135deg,#0052a3,#002d7a)}
+    .signin-link{display:inline-block;color:#0066cc;text-decoration:none;font-size:13px;margin-top:12px;font-weight:600}
+    .signin-link:hover{text-decoration:underline}
+    .footer-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.5);padding:16px 20px;text-align:center;z-index:20;backdrop-filter:blur(8px)}
+    .footer-bar img{height:40px;margin-right:12px;vertical-align:middle;object-fit:contain}
+    .footer-bar p{color:#fff;font-size:13px;margin:0;display:inline-block;vertical-align:middle}
+  </style>
 </head>
-<body>
-  <div class="login-bg" aria-hidden="true" style="background-image:url('assets/images/login-bg.webp')"></div>
-  <main class="container login-hero">
-    <div class="login-card" role="main">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <img src="assets/images/foundit-logo.svg" alt="Found-It logo" style="width:44px;height:44px">
-        <div>
-          <h3>Welcome back — Found-It</h3>
-          <p style="color:var(--muted);margin:0;font-size:13px">Login with your <strong>@mbu.asia</strong> email</p>
-        </div>
-      </div>
-
+<body class="login-page">
+  <div class="login-container">
+    <div class="white-card">
+      <div class="icon">🏠</div>
+      <h2>Found-It | MBU Lost & Found Portal</h2>
+      <p>Login with MBU Email</p>
+      <p style="color:#999;font-size:12px;margin-bottom:24px">Access is restricted to users with a <strong>@mbu.asia</strong> email address.</p>
+      
       <form>
         <div class="form-group">
-          <input class="input" type="email" placeholder="you@mbu.asia" required>
+          <label>Email</label>
+          <input type="email" placeholder="you@mbu.asia" required>
         </div>
         <div class="form-group">
-          <input class="input" type="password" placeholder="Password" required>
+          <label>Password</label>
+          <input type="password" placeholder="••••••••" required>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:12px">
-          <button class="btn btn-primary">Sign In</button>
-          <a href="forgot-password.html" class="btn btn-outline">Forgot?</a>
+        <button type="submit" class="btn-login">Sign In</button>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:space-between">
+          <a href="forgot-password.html" class="signin-link" style="flex:1">Forgot Password?</a>
+          <a href="signup.html" class="signin-link" style="flex:1">Create Account</a>
         </div>
       </form>
-
     </div>
-  </main>
-
-  <div class="footer-brand"><img src="assets/images/mbu-logo.png" alt="MBU logo"><p>Mohan Babu University — Exclusive access for @mbu.asia students</p></div>
+  </div>
+  
+  <div class="footer-bar">
+    <img src="assets/images/mbu-logo.png" alt="MBU logo">
+    <p>Mohan Babu University — Exclusive access for @mbu.asia students</p>
+  </div>
 </body>
 </html>
