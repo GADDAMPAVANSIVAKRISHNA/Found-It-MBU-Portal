@@ -3,6 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upload Item — Found-It</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body class="with-footer">
+  <header class="container site-header">
+    <div class="brand"><img src="assets/images/foundit-logo.svg" alt="Found-It"><h1>Found-It</h1></div>
+    <nav class="nav"><a href="home.html">Home</a><a href="upload.html">Upload</a><a href="dashboard.html">Dashboard</a><a href="login.html">Login</a></nav>
+  </header>
+
+  <main class="container">
+    <section class="upload-card card">
+      <h2>Report Found / Lost Item</h2>
+      <p class="muted">Provide clear details and a photo to help owners identify items quickly.</p>
+
+      <form style="margin-top:16px">
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input class="form-input" type="text" placeholder="e.g. Black backpack with laptop" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-input" type="text" placeholder="Where it was found/lost" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input" rows="5" placeholder="Any identifying details"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          <div class="file-placeholder">Attach photo (drag & drop not available in HTML-only demo)</div>
+        </div>
+        <div style="margin-top:12px"><button class="btn btn-primary">Submit Report</button></div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <img src="https://upload.wikimedia.org/wikipedia/en/8/80/Mohan_Babu_University_Logo.png" alt="MBU logo">
+    <p>Mohan Babu University — Exclusive access for @mbu.asia students</p>
+  </footer>
+</body>
+</html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Upload — Found-It</title>
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>

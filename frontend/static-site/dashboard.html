@@ -6,37 +6,48 @@
   <title>Dashboard — Found-It</title>
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>
-<body>
-  <header class="container header">
+<body class="with-footer">
+  <header class="container site-header">
     <div class="brand"><img src="assets/images/foundit-logo.svg" alt="Found-It"><h1>Found-It</h1></div>
-    <nav class="nav"><a href="feed.html">Feed</a><a href="upload.html">Upload</a><a href="item.html">Item</a></nav>
+    <nav class="nav"><a href="home.html">Home</a><a href="upload.html">Upload</a><a href="dashboard.html">Dashboard</a><a href="login.html">Login</a></nav>
   </header>
 
   <main class="container">
-    <section class="card">
-      <h3>Your Activity</h3>
-      <ul style="margin-top:12px">
-        <li>Items reported: <strong>3</strong></li>
-        <li>Items claimed: <strong>1</strong></li>
-        <li>Messages: <strong>4</strong></li>
-      </ul>
-    </section>
+    <div class="dashboard-grid">
+      <aside class="sidebar card">
+        <h4>Your Account</h4>
+        <p class="muted">Signed in as <strong>student@mbu.asia</strong></p>
+        <nav style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+          <a href="dashboard.html">My Posts</a>
+          <a href="dashboard.html">Claims</a>
+          <a href="dashboard.html">Settings</a>
+        </nav>
+      </aside>
 
-    <section class="card" style="margin-top:16px">
-      <h3>Recent Posts</h3>
-      <div class="grid" style="margin-top:12px">
-        <article class="card">
-          <h4>Set of Keys</h4>
-          <p class="muted">Found near Admin Block</p>
-        </article>
-        <article class="card">
-          <h4>Blue Water Bottle</h4>
-          <p class="muted">Found in Sports Ground</p>
-        </article>
-      </div>
-    </section>
+      <section>
+        <div class="card">
+          <h3>Your Activity</h3>
+          <ul style="margin-top:12px;color:var(--muted)">
+            <li>Items reported: <strong>3</strong></li>
+            <li>Items claimed: <strong>1</strong></li>
+            <li>Messages: <strong>4</strong></li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>Recent Posts</h3>
+          <div class="grid" style="margin-top:12px">
+            <article class="item-card card"><h4>Set of Keys</h4><p class="muted">Found near Admin Block</p></article>
+            <article class="item-card card"><h4>Blue Water Bottle</h4><p class="muted">Found in Sports Ground</p></article>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
-  <footer class="container" style="padding:18px 0;text-align:center;color:var(--muted)">Found-It • Mohan Babu University</footer>
+  <footer class="footer">
+    <img src="https://upload.wikimedia.org/wikipedia/en/8/80/Mohan_Babu_University_Logo.png" alt="MBU logo">
+    <p>Mohan Babu University — Exclusive access for @mbu.asia students</p>
+  </footer>
 </body>
 </html>
