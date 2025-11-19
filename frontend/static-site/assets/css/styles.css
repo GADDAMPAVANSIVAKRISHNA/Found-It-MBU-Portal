@@ -55,7 +55,7 @@ html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -app
 
 /* Login page full-screen background */
 .login-page{min-height:100vh;position:relative;display:block}
-.login-bg{position:fixed;inset:0;background-image:url('https://images.unsplash.com/photo-1562774053-701939374585?w=1920');background-size:cover;background-position:center;filter:brightness(0.45);z-index:0}
+.login-bg{position:fixed;inset:0;background-image:url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGQGhYWSTLJuwX7gywJXWK7ZDLjcxtJPzyxw&s');background-size:cover;background-position:center;filter:brightness(0.45);z-index:0}
 .login-overlay{position:relative;z-index:10;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px}
 .auth-card{width:100%;max-width:520px;background:#ffffff;border-radius:20px;padding:40px;color:#0b2138;box-shadow:0 30px 80px rgba(2,6,23,0.6)}
 .auth-title{color:#083057;margin:0 0 6px;font-size:22px}
