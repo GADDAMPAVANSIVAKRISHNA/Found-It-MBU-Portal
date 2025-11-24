@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import { supabase } from '../lib/supabaseClient';
 
 const ItemDetails = () => {
   const { id } = useParams();
@@ -15,8 +15,9 @@ const ItemDetails = () => {
 
   const loadItem = async () => {
     try {
-      const res = await api.get(`/items/${id}`);
-      setItem(res.data);
+      const { data, error } = await supabase.from('items').select('*').eq('id', id).single();
+      if (error) throw error;
+      setItem(data);
     } catch (err) {
       console.error(err);
     }
@@ -29,7 +30,15 @@ const ItemDetails = () => {
       return;
     }
     try {
-      await api.post(`/items/${id}/claim`);
+      const user = (await supabase.auth.getUser()).data.user;
+      const { error: claimErr } = await supabase.from('claimed_items').insert({
+        item_id: id,
+        claimed_by: user.id,
+        claim_date: new Date().toISOString(),
+        status: 'Pending'
+      });
+      if (claimErr) throw claimErr;
+      await supabase.from('items').update({ status: 'Claimed' }).eq('id', id);
       alert('Item claimed! Visit Lost & Found office to collect.');
       navigate('/dashboard');
     } catch (err) {
@@ -44,8 +53,8 @@ const ItemDetails = () => {
       <div className="bg-white rounded-xl shadow-lg p-8">
         <div className="grid md:grid-cols-2 gap-8">
           <div>
-            {item.image ? (
-              <img src={item.image} className="w-full h-96 object-cover rounded-lg" />
+            {item.image_url ? (
+              <img src={item.image_url} className="w-full h-96 object-cover rounded-lg" />
             ) : (
               <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
                 <span className="text-gray-500 text-xl">No Image</span>
@@ -59,8 +68,8 @@ const ItemDetails = () => {
             <div className="space-y-3 mb-6">
               <div className="flex justify-between">
                 <span className="text-gray-600">Type:</span>
-                <span className={`px-3 py-1 rounded-full ${item.itemType === 'Lost' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                  {item.itemType}
+                <span className={`px-3 py-1 rounded-full ${item.item_type === 'Lost' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                  {item.item_type}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -94,11 +103,11 @@ const ItemDetails = () => {
 
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-bold mb-2">Contact:</h3>
-              <p><strong>Name:</strong> {item.userName}</p>
-              <p><strong>Phone:</strong> {item.userContact}</p>
+              <p><strong>Name:</strong> {item.user_name}</p>
+              <p><strong>Phone:</strong> {item.user_contact}</p>
             </div>
 
-            {item.itemType === 'Found' && item.status === 'Active' && (
+            {item.item_type === 'Found' && item.status === 'Active' && (
               <button onClick={claimItem} className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-lg hover:bg-primary/90">
                 🎯 CLAIM NOW
               </button>

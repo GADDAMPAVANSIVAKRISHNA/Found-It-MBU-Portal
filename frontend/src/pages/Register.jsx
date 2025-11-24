@@ -1,23 +1,54 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../utils/api';
+import { supabase } from '../lib/supabaseClient';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', sapId: '', branch: '', year: '1st Year', contactNumber: ''
+    name: '', email: '', password: '', branch: '', year: '1st Year', contactNumber: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [step, setStep] = useState('form');
+  const [otp, setOtp] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/auth/register', formData);
-      setSuccess(res.data.message);
-      setTimeout(() => navigate('/login'), 3000);
+      if (!formData.email.endsWith('@mbu.asia')) {
+        setError('Must use @mbu.asia email');
+        return;
+      }
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            branch: formData.branch,
+            year: formData.year,
+            contactNumber: formData.contactNumber
+          }
+        }
+      });
+      if (error) throw error;
+      setSuccess('Check your email to confirm your account');
+      setStep('done');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      setError(err.message || 'Registration failed');
+    }
+  };
+
+  const verifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    try {
+      await api.post('/auth/verify-otp', { email: formData.email, otp });
+      setSuccess('Email verified! You can login now.');
+      setTimeout(() => navigate('/login'), 1500);
+    } catch (err) {
+      setError(err.response?.data?.error || 'OTP verification failed');
     }
   };
 
@@ -26,6 +57,7 @@ const Register = () => {
       <h2 className="text-2xl font-bold mb-6">Register for Found-It</h2>
       {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
       {success && <div className="bg-green-100 text-green-700 p-3 rounded mb-4">{success}</div>}
+      {step === 'form' && (
       <form onSubmit={handleSubmit}>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
@@ -43,11 +75,7 @@ const Register = () => {
             <input type="password" className="w-full px-4 py-2 border rounded-lg" 
               value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} required />
           </div>
-          <div>
-            <label className="block mb-2">SAP ID</label>
-            <input type="text" className="w-full px-4 py-2 border rounded-lg" 
-              value={formData.sapId} onChange={(e) => setFormData({...formData, sapId: e.target.value})} required />
-          </div>
+          
           <div>
             <label className="block mb-2">Branch</label>
             <input type="text" className="w-full px-4 py-2 border rounded-lg" 
@@ -73,6 +101,10 @@ const Register = () => {
           Register
         </button>
       </form>
+      )}
+      {step === 'done' && (
+        <div className="mt-4 text-center text-gray-700">After confirming your email, please login.</div>
+      )}
       <p className="mt-4 text-center">
         Already have an account? <Link to="/login" className="text-primary">Login</Link>
       </p>

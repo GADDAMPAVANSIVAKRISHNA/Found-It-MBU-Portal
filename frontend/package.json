@@ -8,10 +8,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@azure/msal-browser": "^4.26.2",
+    "@supabase/supabase-js": "^2.84.0",
+    "axios": "^1.5.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.16.0",
-    "axios": "^1.5.0"
+    "react-router-dom": "^6.16.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.1.0",

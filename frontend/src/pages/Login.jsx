@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import { supabase } from '../lib/supabaseClient';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -12,13 +12,13 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/auth/login', formData);
-      login(res.data.token, res.data.user);
+      await login(formData.email, formData.password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.message || 'Login failed');
     }
   };
+
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded-xl shadow-lg">

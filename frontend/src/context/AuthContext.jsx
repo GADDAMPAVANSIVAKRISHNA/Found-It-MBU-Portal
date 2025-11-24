@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext } from 'react';
-import api from '../utils/api';
+import { supabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -10,29 +10,29 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) loadUser();
-    else setLoading(false);
+    const init = async () => {
+      const { data } = await supabase.auth.getUser();
+      const u = data.user;
+      setUser(u ? { id: u.id, email: u.email, name: u.user_metadata?.name, branch: u.user_metadata?.branch, year: u.user_metadata?.year, contactNumber: u.user_metadata?.contactNumber } : null);
+      setLoading(false);
+    };
+    init();
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const u = session?.user;
+      setUser(u ? { id: u.id, email: u.email, name: u.user_metadata?.name, branch: u.user_metadata?.branch, year: u.user_metadata?.year, contactNumber: u.user_metadata?.contactNumber } : null);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
-  const loadUser = async () => {
-    try {
-      const res = await api.get('/auth/me');
-      setUser(res.data);
-    } catch (error) {
-      localStorage.removeItem('token');
-    } finally {
-      setLoading(false);
-    }
+  const login = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    const u = data.user;
+    setUser({ id: u.id, email: u.email, name: u.user_metadata?.name, branch: u.user_metadata?.branch, year: u.user_metadata?.year, contactNumber: u.user_metadata?.contactNumber });
   };
 
-  const login = (token, userData) => {
-    localStorage.setItem('token', token);
-    setUser(userData);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 

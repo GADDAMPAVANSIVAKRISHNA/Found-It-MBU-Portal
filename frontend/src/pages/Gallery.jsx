@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../utils/api';
+import { supabase } from '../lib/supabaseClient';
 
 const Gallery = () => {
   const [items, setItems] = useState([]);
@@ -13,10 +13,12 @@ const Gallery = () => {
 
   const loadItems = async () => {
     try {
-      const res = await api.get('/items', {
-        params: { type: 'Found', status: 'Active', category, search }
-      });
-      setItems(res.data);
+      let query = supabase.from('items').select('*').eq('item_type', 'Found').eq('status', 'Active');
+      if (category) query = query.eq('category', category);
+      if (search) query = query.ilike('title', `%${search}%`);
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
+      setItems(data);
     } catch (err) {
       console.error(err);
     }
@@ -45,8 +47,8 @@ const Gallery = () => {
 
       <div className="grid md:grid-cols-4 gap-6">
         {items.map(item => (
-          <Link key={item._id} to={`/item/${item._id}`} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition">
-            {item.image && <img src={item.image} className="w-full h-48 object-cover" />}
+          <Link key={item.id} to={`/item/${item.id}`} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition">
+            {item.image_url && <img src={item.image_url} className="w-full h-48 object-cover" />}
             <div className="p-4">
               <h3 className="font-bold text-lg mb-2">{item.title}</h3>
               <p className="text-gray-600 text-sm mb-2">{item.description.substring(0, 80)}...</p>

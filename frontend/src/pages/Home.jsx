@@ -5,7 +5,7 @@ const Home = () => {
     <div className="max-w-7xl mx-auto px-4 py-16">
       <div className="text-center">
         <h1 className="text-5xl font-bold text-gray-900 mb-4">
-          🔍 Found-It - MBU Lost & Found
+          Found-It — MBU Lost & Found
         </h1>
         <p className="text-xl text-gray-600 mb-8">
           Reuniting students with their belongings at Mohan Babu University

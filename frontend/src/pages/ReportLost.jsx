@@ -4,27 +4,36 @@ import api from '../utils/api';
 
 const ReportLost = () => {
   const [formData, setFormData] = useState({
-    title: '', description: '', category: 'Cards', subcategory: '', location: '', date: '', image: ''
+    title: '', description: '', category: 'Cards', subcategory: '', location: '', date: '', image: '', imageFile: null, previewUrl: '', contact: ''
   });
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/items', { ...formData, itemType: 'Lost' });
+      const fd = new FormData();
+      fd.append('title', formData.title);
+      fd.append('description', formData.description);
+      fd.append('location', formData.location);
+      fd.append('date', formData.date);
+      fd.append('contactNumber', formData.contact);
+      fd.append('category', formData.category);
+      if (formData.imageFile) fd.append('image', formData.imageFile);
+
+      const res = await api.post('/report-lost', fd);
+      if (!res.data?.success) throw new Error(res.data?.message || 'Error reporting item');
       alert('Lost item reported successfully!');
       navigate('/dashboard');
     } catch (err) {
-      alert('Error reporting item');
+      alert(`Error reporting item: ${err.message}`);
     }
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setFormData({...formData, image: reader.result});
-      reader.readAsDataURL(file);
+      const previewUrl = URL.createObjectURL(file);
+      setFormData({...formData, imageFile: file, image: true, previewUrl});
     }
   };
 
@@ -73,7 +82,16 @@ const ReportLost = () => {
         </div>
         <div className="mb-4">
           <label className="block mb-2">Image (Optional)</label>
-          <input type="file" accept="image/*" onChange={handleImageChange} className="w-full" />
+          <input type="file" accept="image/*" capture="environment" onChange={handleImageChange} className="w-full" />
+          {formData.previewUrl && (
+            <img src={formData.previewUrl} alt="Preview" className="mt-3 w-full max-h-80 object-contain rounded-lg border" />
+          )}
+        </div>
+        <div className="mb-4">
+          <label className="block mb-2">Contact Number</label>
+          <input type="tel" inputMode="tel" className="w-full px-4 py-2 border rounded-lg" placeholder="Your phone number"
+            value={formData.contact} onChange={(e) => setFormData({...formData, contact: e.target.value})} />
+          <p className="text-xs text-gray-500 mt-1">Shared only with claimants to coordinate safely.</p>
         </div>
         <button type="submit" className="w-full bg-primary text-white py-2 rounded-lg font-semibold">
           Report Lost Item

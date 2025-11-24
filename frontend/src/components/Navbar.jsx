@@ -9,9 +9,9 @@ const Navbar = () => {
     <nav className="bg-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between h-16 items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl">🔍</span>
-            <span className="text-xl font-bold text-primary">Found-It</span>
+          <Link to="/" className="flex items-center space-x-3">
+            <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-10 w-10 md:h-12 md:w-12 object-contain" />
+            <span className="font-bold text-primary whitespace-nowrap text-lg md:text-xl tracking-wide">Found-It</span>
           </Link>
           
           <div className="flex items-center space-x-4">
@@ -27,6 +27,7 @@ const Navbar = () => {
               <>
                 <Link to="/login" className="bg-gray-200 px-4 py-2 rounded-lg">Login</Link>
                 <Link to="/register" className="bg-primary text-white px-4 py-2 rounded-lg">Register</Link>
+                <Link to="/forgot-password" className="text-gray-700 hover:text-primary">Forgot Password</Link>
               </>
             )}
           </div>

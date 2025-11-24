@@ -3,6 +3,7 @@ const router = express.Router();
 const Item = require('../models/item');
 const ClaimedItem = require('../models/ClaimedItem');
 const auth = require('../middleware/auth');
+// Ensure no Supabase DB usage in this file; MongoDB only
 
 router.post('/', auth, async (req, res) => {
   try {
@@ -97,7 +98,6 @@ router.post('/:id/claim', auth, async (req, res) => {
       itemId: req.params.id,
       claimedBy: req.userId,
       claimerName: req.user.name,
-      claimerSapId: req.user.sapId,
       claimerBranch: req.user.branch,
       claimerYear: req.user.year,
       claimerContact: req.user.contactNumber

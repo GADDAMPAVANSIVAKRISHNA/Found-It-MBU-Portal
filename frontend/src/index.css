@@ -17,6 +17,20 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image: url('https://media.mbu.asia/wp-content/uploads/2025/05/h-123-min-1.webp');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* subtle overlay to improve readability over background */
+body::before{
+  content:"";
+  position: fixed;
+  left:0;right:0;top:0;bottom:0;
+  background: rgba(255,255,255,0.6);
+  pointer-events: none;
+  z-index: -1;
 }
 
 @layer components {

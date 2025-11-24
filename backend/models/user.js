@@ -10,13 +10,14 @@ const userSchema = new mongoose.Schema({
     match: /@mbu\.asia$/ 
   },
   password: { type: String, required: true, minlength: 6 },
-  sapId: { type: String, required: true, unique: true },
   branch: { type: String, required: true },
   year: { type: String, required: true },
   contactNumber: { type: String, required: true },
   isVerified: { type: Boolean, default: false },
   verificationToken: String,
   verificationTokenExpires: Date,
+  verificationOtp: String,
+  verificationOtpExpires: Date,
   resetPasswordToken: String,
   resetPasswordExpires: Date,
   createdAt: { type: Date, default: Date.now }
