@@ -8,6 +8,12 @@ const auth = require('../middleware/auth');
 const https = require('https');
 const jwksClient = require('jwks-rsa');
 
+// quick test inside auth router
+router.get('/test', (req, res) => {
+  res.json({ ok: true, message: 'Auth router test working!' });
+});
+
+// REGISTER
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, branch, year, contactNumber } = req.body;
@@ -37,6 +43,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// VERIFY TOKEN
 router.get('/verify/:token', async (req, res) => {
   try {
     const user = await User.findOne({
@@ -57,6 +64,7 @@ router.get('/verify/:token', async (req, res) => {
   }
 });
 
+// VERIFY OTP
 router.post('/verify-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -77,6 +85,7 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
+// LOGIN
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -106,6 +115,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// FORGOT PASSWORD
 router.post('/forgot-password', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
@@ -123,6 +133,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
+// RESET PASSWORD
 router.post('/reset-password/:token', async (req, res) => {
   try {
     const user = await User.findOne({
@@ -143,9 +154,10 @@ router.post('/reset-password/:token', async (req, res) => {
   }
 });
 
+// GET PROFILE
 router.get('/me', auth, (req, res) => res.json(req.user));
 
-// Microsoft SSO login/register
+// MICROSOFT SSO
 router.post('/microsoft', async (req, res) => {
   try {
     const { idToken } = req.body;
