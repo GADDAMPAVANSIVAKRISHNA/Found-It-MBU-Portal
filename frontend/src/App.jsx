@@ -14,6 +14,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Footer from './components/Footer';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/report-lost" element={<PrivateRoute><ReportLost /></PrivateRoute>} />
               <Route path="/report-found" element={<PrivateRoute><ReportFound /></PrivateRoute>} />
+              <Route path="/admin/dashboard" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
             </Routes>
           </main>
           <Footer />

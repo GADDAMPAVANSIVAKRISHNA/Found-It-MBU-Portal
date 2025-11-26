@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const mime = require('mime-types');
-const { supabase } = require('../utils/supabase');
 const LostItem = require('../models/lostItem');
 const FoundItem = require('../models/foundItem');
+const firebaseAuth = require('../middleware/firebaseAuth');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -15,67 +15,98 @@ router.get('/test', (req, res) => {
 });
 
 // POST /api/report-lost
-router.post('/report-lost', upload.single('image'), async (req, res) => {
+router.post('/report-lost', firebaseAuth, upload.single('image'), async (req, res) => {
   try {
     console.log('✅ [REPORT-LOST] Endpoint reached');
     console.log('📝 Body:', req.body);
     console.log('📷 File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
     
-    const { title, description, location, date, contactNumber, category } = req.body;
+    const { title, description, location, date, contactNumber, category, subcategory } = req.body;
+    const userId = req.user?.id;
+    const userName = req.user?.name || req.header('x-user-name') || '';
+    const userEmail = req.user?.email || req.header('x-user-email') || '';
     let imageUrl = '';
 
+    // For now, store base64-encoded image in imageUrl field if provided
     if (req.file) {
-      const fileName = req.file.originalname.replace(/\s+/g, '_');
-      const timestamp = Date.now();
-      const path = `lost/${timestamp}-${fileName}`;
-      const contentType = req.file.mimetype || mime.lookup(fileName) || 'application/octet-stream';
-
-      const { error: upErr } = await supabase.storage
-        .from('items')
-        .upload(path, req.file.buffer, { contentType });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('items').getPublicUrl(path);
-      imageUrl = pub.publicUrl;
+      // Convert to base64 for storage in MongoDB (small images only)
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype || mime.lookup(req.file.originalname) || 'image/jpeg';
+      imageUrl = `data:${mimeType};base64,${base64}`;
     }
 
-    const doc = new LostItem({ title, description, location, date, contactNumber, category, imageUrl });
+    const doc = new LostItem({ 
+      title, 
+      description, 
+      location, 
+      date, 
+      contactNumber, 
+      category, 
+      subcategory, 
+      imageUrl, 
+      userId, 
+      userName, 
+      userEmail, 
+      userContact: contactNumber, 
+      approvalStatus: 'pending',
+      status: 'Active'
+    });
     await doc.save();
-    return res.status(201).json({ success: true, item: doc });
+    
+    console.log('✅ Lost item saved:', doc._id);
+    return res.status(201).json({ success: true, item: doc, message: 'Lost item reported successfully!' });
   } catch (error) {
+    console.error('🔥 [REPORT-LOST] Error:', error.stack || error);
     return res.status(500).json({ success: false, message: 'Error reporting item', error: error.message });
   }
 });
 
 // POST /api/report-found
-router.post('/report-found', upload.single('image'), async (req, res) => {
+router.post('/report-found', firebaseAuth, upload.single('image'), async (req, res) => {
   try {
     console.log('✅ [REPORT-FOUND] Endpoint reached');
     console.log('📝 Body:', req.body);
     console.log('📷 File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
     
-    const { title, description, location, date, contactNumber, category } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Image required for found items' });
+    }
+    
+    const { title, description, location, date, contactNumber, category, subcategory } = req.body;
+    const userId = req.user?.id;
+    const userName = req.user?.name || req.header('x-user-name') || '';
+    const userEmail = req.user?.email || req.header('x-user-email') || '';
     let imageUrl = '';
 
     if (req.file) {
-      const fileName = req.file.originalname.replace(/\s+/g, '_');
-      const timestamp = Date.now();
-      const path = `found/${timestamp}-${fileName}`;
-      const contentType = req.file.mimetype || mime.lookup(fileName) || 'application/octet-stream';
-
-      const { error: upErr } = await supabase.storage
-        .from('items')
-        .upload(path, req.file.buffer, { contentType });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('items').getPublicUrl(path);
-      imageUrl = pub.publicUrl;
-    } else {
-      return res.status(400).json({ success: false, message: 'Image required for found items' });
+      // Convert to base64 for storage in MongoDB (small images only)
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype || mime.lookup(req.file.originalname) || 'image/jpeg';
+      imageUrl = `data:${mimeType};base64,${base64}`;
     }
 
-    const doc = new FoundItem({ title, description, location, date, contactNumber, category, imageUrl });
+    const doc = new FoundItem({ 
+      title, 
+      description, 
+      location, 
+      date, 
+      contactNumber, 
+      category, 
+      subcategory, 
+      imageUrl, 
+      userId, 
+      userName, 
+      userEmail, 
+      userContact: contactNumber, 
+      approvalStatus: 'pending',
+      status: 'Active'
+    });
     await doc.save();
-    return res.status(201).json({ success: true, item: doc });
+    
+    console.log('✅ Found item saved:', doc._id);
+    return res.status(201).json({ success: true, item: doc, message: 'Found item reported successfully!' });
   } catch (error) {
+    console.error('🔥 [REPORT-FOUND] Error:', error.stack || error);
     return res.status(500).json({ success: false, message: 'Error reporting item', error: error.message });
   }
 });

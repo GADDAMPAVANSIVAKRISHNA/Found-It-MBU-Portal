@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationsBell from './NotificationsBell';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -16,6 +17,8 @@ const Navbar = () => {
           
           <div className="flex items-center space-x-4">
             <Link to="/gallery" className="text-gray-700 hover:text-primary">Gallery</Link>
+            {user?.role === 'admin' && <Link to="/admin/dashboard" className="text-gray-700 hover:text-primary">Admin</Link>}
+            <NotificationsBell />
             {user ? (
               <>
                 <Link to="/dashboard" className="text-gray-700 hover:text-primary">Dashboard</Link>

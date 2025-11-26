@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabaseClient';
+import api from '../utils/api';
+import imageCompression from 'browser-image-compression';
+import { auth } from '../lib/firebase';
 
 const ItemDetails = () => {
   const { id } = useParams();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [item, setItem] = useState(null);
+  const [showClaim, setShowClaim] = useState(false);
+  const [claimForm, setClaimForm] = useState({ studentId: '', proofDescription: '', proofImageFile: null });
+  const [userInfo, setUserInfo] = useState({ name: '', email: '', contactNumber: '' });
 
   useEffect(() => {
     loadItem();
@@ -15,34 +20,46 @@ const ItemDetails = () => {
 
   const loadItem = async () => {
     try {
-      const { data, error } = await supabase.from('items').select('*').eq('id', id).single();
-      if (error) throw error;
-      setItem(data);
+      const [type, mongoId] = id.split('_');
+      const { data } = await api.get(`/api/items/gallery/${type}/${mongoId}`);
+      setItem(data.item);
+      const u = auth.currentUser;
+      if (u) setUserInfo({ name: u.displayName || '', email: u.email || '', contactNumber: '' });
     } catch (err) {
       console.error(err);
     }
   };
 
-  const claimItem = async () => {
+  const submitClaim = async (e) => {
+    e.preventDefault();
     if (!isAuthenticated) {
       alert('Please login to claim items');
       navigate('/login');
       return;
     }
     try {
-      const user = (await supabase.auth.getUser()).data.user;
-      const { error: claimErr } = await supabase.from('claimed_items').insert({
-        item_id: id,
-        claimed_by: user.id,
-        claim_date: new Date().toISOString(),
-        status: 'Pending'
-      });
-      if (claimErr) throw claimErr;
-      await supabase.from('items').update({ status: 'Claimed' }).eq('id', id);
-      alert('Item claimed! Visit Lost & Found office to collect.');
+      const u = auth.currentUser;
+      const fd = new FormData();
+      fd.append('itemId', item.id.split('_')[1]);
+      fd.append('itemType', item.item_type.toLowerCase());
+      fd.append('name', (u?.displayName) || '');
+      fd.append('email', u?.email || '');
+      fd.append('studentId', claimForm.studentId);
+      fd.append('contactNumber', userInfo.contactNumber || '');
+      fd.append('proofDescription', claimForm.proofDescription);
+      fd.append('userId', u.uid);
+
+      if (claimForm.proofImageFile) {
+        const compressed = await imageCompression(claimForm.proofImageFile, { maxWidthOrHeight: 800, maxSizeMB: 1.2, useWebWorker: true });
+        fd.append('proofImage', new File([compressed], claimForm.proofImageFile.name, { type: compressed.type }));
+      }
+
+      const { data } = await api.post('/api/claim', fd);
+      if (!data?.success) throw new Error('Failed to submit claim');
+      alert('Claim submitted! You will be notified upon review.');
       navigate('/dashboard');
     } catch (err) {
-      alert(err.response?.data?.error || 'Error claiming item');
+      alert(err.response?.data?.error || 'Error submitting claim');
     }
   };
 
@@ -50,7 +67,7 @@ const ItemDetails = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="bg-white rounded-xl shadow-lg p-8">
         <div className="grid md:grid-cols-2 gap-8">
           <div>
             {item.image_url ? (
@@ -108,13 +125,52 @@ const ItemDetails = () => {
             </div>
 
             {item.item_type === 'Found' && item.status === 'Active' && (
-              <button onClick={claimItem} className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-lg hover:bg-primary/90">
-                🎯 CLAIM NOW
+              <button onClick={() => setShowClaim(true)} className="w-full bg-primary text-white py-3 rounded-lg font-semibold text-lg hover:bg-primary/90">
+                Claim Item
               </button>
             )}
           </div>
         </div>
       </div>
+      {showClaim && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Claim Item</h3>
+              <button onClick={() => setShowClaim(false)} className="text-gray-600">✕</button>
+            </div>
+            <form onSubmit={submitClaim}>
+              <div className="mb-3 grid md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm mb-1">Name</label>
+                  <input className="w-full border rounded-lg px-3 py-2" value={userInfo.name} readOnly />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Email</label>
+                  <input className="w-full border rounded-lg px-3 py-2" value={userInfo.email} readOnly />
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="block text-sm mb-1">Contact Number</label>
+                <input className="w-full border rounded-lg px-3 py-2" value={userInfo.contactNumber} readOnly />
+              </div>
+              <div className="mb-3">
+                <label className="block text-sm mb-1">Student ID</label>
+                <input className="w-full border rounded-lg px-3 py-2" value={claimForm.studentId} onChange={(e) => setClaimForm({ ...claimForm, studentId: e.target.value })} required />
+              </div>
+              <div className="mb-3">
+                <label className="block text-sm mb-1">Proof of Ownership</label>
+                <textarea className="w-full border rounded-lg px-3 py-2" rows={4} value={claimForm.proofDescription} onChange={(e) => setClaimForm({ ...claimForm, proofDescription: e.target.value })} required />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm mb-1">Optional Proof Image</label>
+                <input type="file" accept="image/*" onChange={(e) => setClaimForm({ ...claimForm, proofImageFile: e.target.files?.[0] || null })} />
+              </div>
+              <button type="submit" className="w-full bg-primary text-white py-2 rounded-lg font-semibold">Submit Claim</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

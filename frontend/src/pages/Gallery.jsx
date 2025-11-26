@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
+import api from '../utils/api';
 
 const Gallery = () => {
   const [items, setItems] = useState([]);
   const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
+  const [location, setLocation] = useState('');
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState('recent');
+  const [page, setPage] = useState(1);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     loadItems();
@@ -13,12 +20,12 @@ const Gallery = () => {
 
   const loadItems = async () => {
     try {
-      let query = supabase.from('items').select('*').eq('item_type', 'Found').eq('status', 'Active');
-      if (category) query = query.eq('category', category);
-      if (search) query = query.ilike('title', `%${search}%`);
-      const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) throw error;
-      setItems(data);
+      const params = { category, subcategory, location, sort, page, limit: 12 };
+      if (status) params.claimedStatus = status;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      const { data } = await api.get('/api/items/gallery', { params });
+      setItems(data.items || []);
     } catch (err) {
       console.error(err);
     }
@@ -28,7 +35,7 @@ const Gallery = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h2 className="text-3xl font-bold mb-6">Found Items Gallery</h2>
       
-      <div className="flex space-x-4 mb-6">
+      <div className="grid md:grid-cols-6 gap-3 mb-6">
         <input
           type="text"
           placeholder="Search items..."
@@ -43,6 +50,21 @@ const Gallery = () => {
           <option>Books</option>
           <option>Others</option>
         </select>
+        <input type="text" placeholder="Subcategory" className="px-4 py-2 border rounded-lg" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} />
+        <input type="text" placeholder="Location" className="px-4 py-2 border rounded-lg" value={location} onChange={(e) => setLocation(e.target.value)} />
+        <select className="px-4 py-2 border rounded-lg" value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="recent">Recent → Oldest</option>
+          <option value="oldest">Oldest → Recent</option>
+          <option value="category_az">Category A–Z</option>
+        </select>
+        <select className="px-4 py-2 border rounded-lg" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">All</option>
+          <option value="unclaimed">Unclaimed</option>
+          <option value="claimed">Claimed</option>
+          <option value="returned">Returned</option>
+        </select>
+        <input type="date" className="px-4 py-2 border rounded-lg" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <input type="date" className="px-4 py-2 border rounded-lg" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
       </div>
 
       <div className="grid md:grid-cols-4 gap-6">
@@ -59,6 +81,10 @@ const Gallery = () => {
             </div>
           </Link>
         ))}
+      </div>
+      <div className="flex justify-center mt-6 gap-3">
+        <button className="px-4 py-2 border rounded" onClick={() => setPage(Math.max(1, page - 1))}>Prev</button>
+        <button className="px-4 py-2 border rounded" onClick={() => setPage(page + 1)}>Next</button>
       </div>
     </div>
   );

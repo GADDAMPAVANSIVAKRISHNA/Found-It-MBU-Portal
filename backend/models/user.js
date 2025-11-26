@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
   branch: { type: String, required: true },
   year: { type: String, required: true },
   contactNumber: { type: String, required: true },
+  role: { type: String, enum: ['admin', 'student'], default: 'student' },
   isVerified: { type: Boolean, default: false },
   verificationToken: String,
   verificationTokenExpires: Date,

@@ -32,7 +32,7 @@ const sendPasswordResetEmail = async (email, token) => {
 };
 
 module.exports = { sendVerificationEmail, sendPasswordResetEmail };
- 
+
 const sendVerificationOtpEmail = async (email, otp) => {
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
@@ -43,3 +43,34 @@ const sendVerificationOtpEmail = async (email, otp) => {
 };
 
 module.exports.sendVerificationOtpEmail = sendVerificationOtpEmail;
+
+const sendItemReportEmail = async (email, item) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: `Item Report Received — ${item.title}`,
+    html: `<p>Your ${item.category} (${item.subcategory || ''}) report was received.</p><p>Status: <strong>${item.approvalStatus}</strong> (shown after approval).</p>`
+  });
+};
+
+const sendClaimSubmittedEmail = async (email, claim) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Claim Submitted — Found-It',
+    html: `<p>Your claim for item <strong>${claim.itemId}</strong> has been submitted.</p><p>Status: <strong>${claim.status}</strong>.</p>`
+  });
+};
+
+const sendClaimStatusEmail = async (email, claim) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Claim Status Update — Found-It',
+    html: `<p>Your claim status changed to <strong>${claim.status}</strong> for item <strong>${claim.itemId}</strong>.</p>`
+  });
+};
+
+module.exports.sendItemReportEmail = sendItemReportEmail;
+module.exports.sendClaimSubmittedEmail = sendClaimSubmittedEmail;
+module.exports.sendClaimStatusEmail = sendClaimStatusEmail;

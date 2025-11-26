@@ -1,5 +1,7 @@
-import { createContext, useState, useEffect, useContext } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { createContext, useState, useEffect, useContext } from "react";
+import api from '../utils/api';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 const AuthContext = createContext();
 
@@ -7,37 +9,58 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      const { data } = await supabase.auth.getUser();
-      const u = data.user;
-      setUser(u ? { id: u.id, email: u.email, name: u.user_metadata?.name, branch: u.user_metadata?.branch, year: u.user_metadata?.year, contactNumber: u.user_metadata?.contactNumber } : null);
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        try {
+          const idToken = await u.getIdToken();
+          setToken(idToken);
+        } catch (_) { setToken(''); }
+        try {
+          const { data: profile } = await api.get('/users/by-email', { params: { email: u.email } });
+          setUser({
+            id: profile._id || u.uid,
+            email: u.email,
+            name: u.displayName || profile.name,
+            branch: profile.branch,
+            year: profile.year,
+            contactNumber: profile.contactNumber,
+            role: profile.role || 'student'
+          });
+        } catch (_) {
+          setUser({ id: u.uid, email: u.email, name: u.displayName || '', role: 'student' });
+        }
+      } else {
+        setUser(null);
+        setToken('');
+      }
       setLoading(false);
-    };
-    init();
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const u = session?.user;
-      setUser(u ? { id: u.id, email: u.email, name: u.user_metadata?.name, branch: u.user_metadata?.branch, year: u.user_metadata?.year, contactNumber: u.user_metadata?.contactNumber } : null);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => unsub();
   }, []);
 
-  const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    const u = data.user;
-    setUser({ id: u.id, email: u.email, name: u.user_metadata?.name, branch: u.user_metadata?.branch, year: u.user_metadata?.year, contactNumber: u.user_metadata?.contactNumber });
-  };
+  const login = async () => {};
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     setUser(null);
+    setToken('');
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        logout,
+        isAuthenticated: !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
