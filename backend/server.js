@@ -1,5 +1,5 @@
 // =============================
-//  SERVER.JS – FINAL & CLEANED
+//  SERVER.JS – FINAL & PERFECTED
 // =============================
 
 const express = require("express");
@@ -50,9 +50,15 @@ app.use((req, res, next) => {
 });
 
 // =============================
+//  ROOT ROUTE (must be BEFORE 404 handler)
+// =============================
+app.get("/", (req, res) => {
+  res.json({ message: "Found-It API Running!", status: "active" });
+});
+
+// =============================
 //  ROUTES
 // =============================
-// Keep route mounts after the test route so /api/auth/test is handled.
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/items", require("./routes/items"));
 app.use("/api/users", require("./routes/users"));
@@ -65,7 +71,10 @@ app.use("/api", require("./routes/notifications"));
 //  404 - Not Found (friendly JSON)
 // =============================
 app.use((req, res) => {
-  res.status(404).json({ error: "Not found", path: req.originalUrl });
+  res.status(404).json({
+    error: "Not found",
+    path: req.originalUrl
+  });
 });
 
 // =============================
@@ -90,13 +99,6 @@ mongoose
       err.message
     );
   });
-
-// =============================
-//  ROOT ROUTE
-// =============================
-app.get("/", (req, res) => {
-  res.json({ message: "Found-It API Running!", status: "active" });
-});
 
 // =============================
 //  ERROR HANDLER (must be LAST)
