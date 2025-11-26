@@ -1,5 +1,5 @@
 // =============================
-//  SERVER.JS – FIXED & CLEANED
+//  SERVER.JS – FINAL & CLEANED
 // =============================
 
 const express = require("express");
@@ -35,6 +35,13 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // =============================
+//  🔥 TEST ROUTE (must be BEFORE route mounting)
+// =============================
+app.get("/api/auth/test", (req, res) => {
+  res.json({ ok: true, message: "Auth test route working!" });
+});
+
+// =============================
 //  DEBUG LOGGER
 // =============================
 app.use((req, res, next) => {
@@ -45,6 +52,7 @@ app.use((req, res, next) => {
 // =============================
 //  ROUTES
 // =============================
+// Keep route mounts after the test route so /api/auth/test is handled.
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/items", require("./routes/items"));
 app.use("/api/users", require("./routes/users"));
@@ -54,17 +62,21 @@ app.use("/api/admin", require("./routes/admin"));
 app.use("/api", require("./routes/notifications"));
 
 // =============================
+//  404 - Not Found (friendly JSON)
+// =============================
+app.use((req, res) => {
+  res.status(404).json({ error: "Not found", path: req.originalUrl });
+});
+
+// =============================
 //  MONGO DB CONNECTION (FIXED)
 // =============================
-// Ensure we have a valid MongoDB URI. If not present, fall back to a local default
-const mongoURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/found-it-dev';
+const mongoURI =
+  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/found-it-dev";
 
-console.log(`🔧 Using MongoDB URI: ${process.env.MONGO_URI ? '[ENV]' : '[FALLBACK LOCAL]'}`);
-
-if (!mongoURI) {
-  console.error("❌ ERROR: MONGO_URI is missing in .env file");
-  process.exit(1);
-}
+console.log(
+  `🔧 Using MongoDB URI: ${process.env.MONGO_URI ? "[ENV]" : "[FALLBACK LOCAL]"}`
+);
 
 mongoose
   .connect(mongoURI, {
@@ -87,29 +99,32 @@ app.get("/", (req, res) => {
 });
 
 // =============================
-//  ERROR HANDLER
+//  ERROR HANDLER (must be LAST)
 // =============================
+/* eslint-disable no-unused-vars */
 app.use((err, req, res, next) => {
-  console.error("❌ SERVER ERROR:", err.stack);
+  console.error("❌ SERVER ERROR:", err && err.stack ? err.stack : err);
   res.status(500).json({ error: "Something went wrong!" });
 });
+/* eslint-enable no-unused-vars */
 
 // =============================
 //  START SERVER (with EADDRINUSE fallback)
 // =============================
-const desiredPort = parseInt(process.env.PORT || '5000', 10);
+const desiredPort = parseInt(process.env.PORT || "5000", 10);
 
 function start(port) {
   const server = app.listen(port, () => {
     console.log(`🚀 Server running on port ${port}`);
   });
-  server.on('error', (err) => {
-    if (err && err.code === 'EADDRINUSE') {
-      const next = port + 1;
-      console.warn(`⚠️ Port ${port} in use, attempting ${next}...`);
-      start(next);
+
+  server.on("error", (err) => {
+    if (err && err.code === "EADDRINUSE") {
+      const nextPort = port + 1;
+      console.warn(`⚠️ Port ${port} in use, attempting ${nextPort}...`);
+      start(nextPort);
     } else {
-      console.error('❌ Server failed to start:', err);
+      console.error("❌ Server failed to start:", err);
       process.exit(1);
     }
   });
