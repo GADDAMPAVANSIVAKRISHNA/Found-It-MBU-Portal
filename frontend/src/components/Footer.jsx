@@ -1,38 +1,83 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="mt-12 bg-gradient-to-r from-indigo-50 to-purple-50">
-      <div className="max-w-7xl mx-auto px-6 py-10">
-        <div className="grid md:grid-cols-4 gap-8">
+    <footer className="bg-gray-900 text-white mt-12">
+      <div className="container mx-auto px-4 py-12">
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+
+          {/* About */}
           <div>
-            <div className="font-bold mb-2">About</div>
-            <p className="text-sm text-gray-700">Found‑It is MBU's student‑built Lost & Found portal helping reunite items quickly and safely across campus.</p>
+            <h3 className="font-bold mb-4">About Found-It</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Found-It is a student-built Lost & Found platform helping the campus
+              community report, locate, and recover lost belongings quickly and safely.
+            </p>
           </div>
+
+          {/* Quick Links */}
           <div>
-            <div className="font-bold mb-2">Quick Links</div>
+            <h3 className="font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="/report-lost" className="hover:text-primary">Report Lost</a></li>
-              <li><a href="/report-found" className="hover:text-primary">Report Found</a></li>
-              <li><a href="/dashboard" className="hover:text-primary">Dashboard</a></li>
-              <li><a href="/gallery" className="hover:text-primary">Gallery</a></li>
-              <li><a href="#" className="hover:text-primary">Contact Office</a></li>
+              <li><Link to="/gallery" className="text-gray-400 hover:text-white">Gallery</Link></li>
+              <li><Link to="/report-lost" className="text-gray-400 hover:text-white">Report Lost</Link></li>
+              <li><Link to="/report-found" className="text-gray-400 hover:text-white">Report Found</Link></li>
+              <li><Link to="/dashboard" className="text-gray-400 hover:text-white">Dashboard</Link></li>
+              <li><Link to="/contact-office" className="text-gray-400 hover:text-white">Contact Office</Link></li>
             </ul>
           </div>
+
+          {/* Social */}
           <div>
-            <div className="font-bold mb-2">Social</div>
-            <div className="flex gap-3 text-sm">
-              <a href="#" className="hover:text-primary">Instagram</a>
-              <a href="#" className="hover:text-primary">LinkedIn</a>
-              <a href="https://www.mbu.asia" className="hover:text-primary">Official Website</a>
-            </div>
+            <h3 className="font-bold mb-4">Social Media</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <a
+                  href="https://instagram.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white"
+                >
+                  Instagram
+                </a>
+              </li>
+              <li className="text-gray-600">LinkedIn (Coming Soon)</li>
+              <li className="text-gray-600">Twitter (Coming Soon)</li>
+            </ul>
           </div>
+
+          {/* Contact Info */}
           <div>
-            <div className="font-bold mb-2">Contact Info</div>
-            <p className="text-sm">support@mbu.asia</p>
-            <p className="text-sm">Lost & Found Office</p>
-            <p className="text-sm">+91-XXXXXXXXXX</p>
+            <h3 className="font-bold mb-4">Contact Us</h3>
+
+            <p className="text-gray-400 text-sm mb-2">
+              📧 Email:{' '}
+              <span className="text-blue-400">(demo email – not monitored)</span>
+            </p>
+
+            <p className="text-gray-400 text-sm mb-2">
+              📞 Phone:{' '}
+              <span className="text-blue-400">(demo phone – not active)</span>
+            </p>
+
+            <p className="text-gray-400 text-sm">
+              🏢 Office: Lost & Found Office — Admin Block, Room 102
+            </p>
           </div>
+
         </div>
-        <div className="mt-8 border-t pt-4 text-center text-sm text-gray-600">© 2025 Found‑It • Built for MBU students</div>
+
+        <hr className="border-gray-700 mb-6" />
+
+        <div className="flex items-center justify-between text-sm text-gray-400">
+          <p>&copy; {currentYear} Found-It. All rights reserved.</p>
+          <p>Built with ❤️ by student, for students.</p>
+        </div>
+
       </div>
     </footer>
   );

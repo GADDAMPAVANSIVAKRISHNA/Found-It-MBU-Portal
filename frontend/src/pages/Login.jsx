@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import api from '../utils/api';
 import { auth } from '../lib/firebase';
 
 const Login = () => {
@@ -37,7 +38,17 @@ const Login = () => {
         return;
       }
 
-      // Success - redirect to admin dashboard
+      // Obtain JWT from backend and store for API calls
+      try {
+        const { data } = await api.post('/auth/login', { email: formData.email, password: formData.password });
+        if (data?.token) {
+          localStorage.setItem('token', data.token);
+        }
+      } catch (e) {
+        // If backend password auth not configured, continue without JWT
+        console.warn('Backend login failed, continuing without JWT:', e?.response?.data || e?.message);
+      }
+
       setLoading(false);
       navigate('/');
 
@@ -82,6 +93,9 @@ const Login = () => {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded-lg shadow-lg">
+      <div className="flex justify-center mb-4">
+        <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-14 w-auto" />
+      </div>
       <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Login to Found-It</h2>
       
       {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-center">{error}</div>}

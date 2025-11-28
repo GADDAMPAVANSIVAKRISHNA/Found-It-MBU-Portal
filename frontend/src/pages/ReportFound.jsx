@@ -1,408 +1,341 @@
-// import { useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import api from '../utils/api';
-
-// const ReportFound = () => {
-//   const [formData, setFormData] = useState({
-//     title: '',
-//     description: '',
-//     category: 'Cards',
-//     subcategory: '',
-//     location: '',
-//     date: '',
-//     image: '',
-//     imageFile: null,
-//     previewUrl: '',
-//     contactNumber: ''
-//   });
-
-//   const navigate = useNavigate();
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     if (!formData.image) {
-//       alert('Image is mandatory for found items!');
-//       return;
-//     }
-
-//     try {
-//       const fd = new FormData();
-//       fd.append('title', formData.title);
-//       fd.append('description', formData.description);
-//       fd.append('location', formData.location);
-//       fd.append('date', formData.date);
-//       fd.append('contactNumber', formData.contactNumber);
-//       fd.append('category', formData.category);
-//       fd.append('subcategory', formData.subcategory);
-
-//       if (formData.imageFile) fd.append('image', formData.imageFile);
-
-//       const res = await api.post('/api/report-found', fd);
-
-//       if (!res.data?.success) {
-//         throw new Error(res.data?.message || 'Error reporting item');
-//       }
-
-//       alert('Found item reported successfully!');
-//       navigate('/dashboard');
-//     } catch (err) {
-//       alert(`Error reporting item: ${err.message}`);
-//     }
-//   };
-
-//   const handleImageChange = (e) => {
-//     const file = e.target.files[0];
-//     if (file) {
-//       const previewUrl = URL.createObjectURL(file);
-//       setFormData({ ...formData, imageFile: file, image: true, previewUrl });
-//     }
-//   };
-
-//   return (
-//     <div className="max-w-2xl mx-auto p-6 mt-8">
-//       <h2 className="text-2xl font-bold mb-6">Report Found Item</h2>
-//       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg">
-
-//         {/* TITLE */}
-//         <div className="mb-4">
-//           <label className="block mb-2">Title</label>
-//           <input
-//             name="title"
-//             type="text"
-//             className="w-full px-4 py-2 border rounded-lg"
-//             value={formData.title}
-//             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-//             required
-//           />
-//         </div>
-
-//         {/* DESCRIPTION */}
-//         <div className="mb-4">
-//           <label className="block mb-2">Description</label>
-//           <textarea
-//             name="description"
-//             className="w-full px-4 py-2 border rounded-lg"
-//             rows="4"
-//             value={formData.description}
-//             onChange={(e) =>
-//               setFormData({ ...formData, description: e.target.value })
-//             }
-//             required
-//           />
-//         </div>
-
-//         {/* CATEGORY + SUBCATEGORY */}
-//         <div className="grid md:grid-cols-2 gap-4 mb-4">
-//           <div>
-//             <label className="block mb-2">Category</label>
-//             <select
-//               name="category"
-//               className="w-full px-4 py-2 border rounded-lg"
-//               value={formData.category}
-//               onChange={(e) =>
-//                 setFormData({ ...formData, category: e.target.value })
-//               }
-//             >
-//               <option>Cards</option>
-//               <option>Electronic Devices</option>
-//               <option>Books</option>
-//               <option>Others</option>
-//             </select>
-//           </div>
-
-//           <div>
-//             <label className="block mb-2">Subcategory</label>
-//             <input
-//               name="subcategory"
-//               type="text"
-//               className="w-full px-4 py-2 border rounded-lg"
-//               value={formData.subcategory}
-//               onChange={(e) =>
-//                 setFormData({ ...formData, subcategory: e.target.value })
-//               }
-//               required
-//             />
-//           </div>
-//         </div>
-
-//         {/* LOCATION + DATE */}
-//         <div className="grid md:grid-cols-2 gap-4 mb-4">
-//           <div>
-//             <label className="block mb-2">Location</label>
-//             <input
-//               name="location"
-//               type="text"
-//               className="w-full px-4 py-2 border rounded-lg"
-//               value={formData.location}
-//               onChange={(e) =>
-//                 setFormData({ ...formData, location: e.target.value })
-//               }
-//               required
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block mb-2">Date</label>
-//             <input
-//               name="date"
-//               type="date"
-//               className="w-full px-4 py-2 border rounded-lg"
-//               value={formData.date}
-//               onChange={(e) =>
-//                 setFormData({ ...formData, date: e.target.value })
-//               }
-//               required
-//             />
-//           </div>
-//         </div>
-
-//         {/* IMAGE */}
-//         <div className="mb-4">
-//           <label className="block mb-2">Image (Required)</label>
-//           <input
-//             name="image"
-//             type="file"
-//             accept="image/*"
-//             capture="environment"
-//             onChange={handleImageChange}
-//             className="w-full"
-//             required
-//           />
-//           {formData.previewUrl && (
-//             <img
-//               src={formData.previewUrl}
-//               alt="Preview"
-//               className="mt-3 w-full max-h-80 object-contain rounded-lg border"
-//             />
-//           )}
-//         </div>
-
-//         {/* CONTACT NUMBER */}
-//         <div className="mb-4">
-//           <label className="block mb-2">Contact Number</label>
-//           <input
-//             name="contactNumber"
-//             type="tel"
-//             inputMode="tel"
-//             className="w-full px-4 py-2 border rounded-lg"
-//             placeholder="Your phone number"
-//             value={formData.contactNumber}
-//             onChange={(e) =>
-//               setFormData({ ...formData, contactNumber: e.target.value })
-//             }
-//           />
-//           <p className="text-xs text-gray-500 mt-1">
-//             Shared only with claimants to coordinate safely.
-//           </p>
-//         </div>
-
-//         <button
-//           type="submit"
-//           className="w-full bg-primary text-white py-2 rounded-lg font-semibold"
-//         >
-//           Report Found Item
-//         </button>
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default ReportFound;
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { toast } from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 
 const ReportFound = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'Cards',
+    category: 'Electronics',
     subcategory: '',
     location: '',
-    date: '',
-    image: '',
-    imageFile: null,
-    previewUrl: '',
-    contact: ''
+    dateFound: '',
+    approximateTime: '',
+    contactPreference: 'mobile',
+    email: '',
+    mobile: '',
+    whereKept: 'With me',
+    otherLocation: '',
   });
 
-  const navigate = useNavigate();
+  const categories = [
+    'Electronics', 'Accessories', 'Documents', 'Books',
+    'Clothing', 'Keys', 'Bags', 'Others'
+  ];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const timeOptions = [
+    'Morning (6 AM - 12 PM)',
+    'Afternoon (12 PM - 5 PM)',
+    'Evening (5 PM - 9 PM)',
+    'Night (9 PM - 6 AM)'
+  ];
 
-    if (!formData.image) {
-      alert('Image is mandatory for found items!');
-      return;
-    }
-
-    try {
-      const fd = new FormData();
-      fd.append('title', formData.title);
-      fd.append('description', formData.description);
-      fd.append('location', formData.location);
-      fd.append('date', formData.date);
-      fd.append('contactNumber', formData.contact);
-      fd.append('category', formData.category);
-      fd.append('subcategory', formData.subcategory);
-      
-      if (formData.imageFile) {
-        const compressed = await imageCompression(formData.imageFile, { maxWidthOrHeight: 800, maxSizeMB: 1.2, useWebWorker: true });
-        fd.append('image', new File([compressed], formData.imageFile.name, { type: compressed.type }));
-      }
-
-      const res = await api.post('/report-found', fd);
-
-      if (!res.data?.success) {
-        throw new Error(res.data?.message || 'Error reporting item');
-      }
-
-      alert('Found item reported successfully!');
-      navigate('/dashboard');
-    } catch (err) {
-      const serverMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error';
-      alert(`Error reporting item: ${serverMsg}`);
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setFormData({
-        ...formData,
-        imageFile: file,
-        image: true,
-        previewUrl
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // FORM VALIDATION
+  const validateForm = () => {
+    if (!formData.title.trim()) return toast.error('Please enter item title');
+    if (!formData.description.trim()) return toast.error('Please enter item description');
+    if (!formData.location.trim()) return toast.error('Please enter location where item was found');
+    if (!formData.dateFound) return toast.error('Please select date found');
+    if (!formData.approximateTime) return toast.error('Please select approximate time');
+    if (!imageFile) return toast.error('Image is mandatory for found items');
+
+    if (!formData.mobile.trim() && !formData.email.trim()) {
+      return toast.error('Please provide mobile or email');
+    }
+
+    if (formData.mobile && !/^[0-9]{10}$/.test(formData.mobile)) {
+      return toast.error('Please enter valid 10-digit mobile number');
+    }
+
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      return toast.error('Please enter valid email');
+    }
+
+    return true;
+  };
+
+  // FORM SUBMIT
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('description', formData.description);
+      data.append('category', formData.category);
+      data.append('subcategory', formData.subcategory);
+      data.append('location', formData.location);
+      data.append('date', formData.dateFound);
+      data.append('contactNumber', formData.mobile);
+      data.append('email', formData.email);
+      data.append('contactPreference', formData.contactPreference);
+      data.append('whereKept', formData.whereKept);
+
+      if (imageFile) {
+        const compressed = await imageCompression(imageFile, {
+          maxWidthOrHeight: 800,
+          maxSizeMB: 1.2,
+          useWebWorker: true,
+        });
+        data.append('image', compressed);
+      }
+
+      // Submit to backend (JWT included by interceptor)
+      await api.post('/found', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
+
+      toast.success('Found item reported successfully!');
+      navigate('/dashboard');
+
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error reporting found item');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 mt-8">
-      <h2 className="text-2xl font-bold mb-6">Report Found Item</h2>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg">
-        <div className="mb-4">
-          <label className="block mb-2">Title</label>
-          <input
-            name="title"
-            type="text"
-            className="w-full px-4 py-2 border rounded-lg"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            required
-          />
-        </div>
+    <div className="min-h-screen py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-8">
 
-        <div className="mb-4">
-          <label className="block mb-2">Description</label>
-          <textarea
-            name="description"
-            className="w-full px-4 py-2 border rounded-lg"
-            rows="4"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            required
-          />
-        </div>
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">Report Found Item</h1>
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+              <p className="text-gray-700 text-sm">
+                <span className="font-semibold">📝 Use this form to report items you found on campus.</span><br />
+                <span className="text-gray-600">The details you provide help owners identify and reclaim their item quickly.</span>
+              </p>
+            </div>
+          </div>
 
-        <div className="grid md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block mb-2">Category</label>
-            <select
-              name="category"
-              className="w-full px-4 py-2 border rounded-lg"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+          {/* FORM */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Item Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g., Silver Laptop, Blue Backpack"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Detailed Description *</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows="4"
+                placeholder="Describe distinguishing features, color, brand, condition, etc."
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+              />
+            </div>
+
+            {/* Category + Subcategory */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                >
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Subcategory</label>
+                <input
+                  type="text"
+                  name="subcategory"
+                  value={formData.subcategory}
+                  onChange={handleChange}
+                  placeholder="e.g., Laptop, Backpack"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Location + Date */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Location Found *</label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="Library, Cafeteria, Classroom, etc."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date Found *</label>
+                <input
+                  type="date"
+                  name="dateFound"
+                  value={formData.dateFound}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Approximate Time */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Approximate Time *</label>
+              <select
+                name="approximateTime"
+                value={formData.approximateTime}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+              >
+                <option value="">Select time range</option>
+                {timeOptions.map(time => (
+                  <option key={time} value={time}>{time}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Image *</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+              />
+
+              {imagePreview && (
+                <div className="mt-4 flex justify-center">
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="max-h-64 max-w-sm rounded-lg shadow-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setImagePreview(null); setImageFile(null); }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Contact Info */}
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Contact Information</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Mobile</label>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    placeholder="10-digit mobile number"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="your.email@mbu.edu.in"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                  />
+                </div>
+
+              </div>
+            </div>
+
+            {/* Where is the item kept? */}
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Where is the item kept? *</label>
+              <select name="whereKept" value={formData.whereKept} onChange={handleChange} className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg">
+                <option value="With me">With me</option>
+                <option value="University Office">University Office</option>
+                <option value="Security Check 1st gate">Security Check 1st gate</option>
+                <option value="Security Check 2nd gate">Security Check 2nd gate</option>
+                <option value="Other">Other</option>
+              </select>
+              {formData.whereKept === 'Other' && (
+                <div className="mt-3">
+                  <input
+                    type="text"
+                    placeholder="Please specify where the item is kept"
+                    value={formData.otherLocation || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, otherLocation: e.target.value }))}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md"
             >
-              <option>Cards</option>
-              <option>Electronic Devices</option>
-              <option>Books</option>
-              <option>Others</option>
-            </select>
-          </div>
-          <div>
-            <label className="block mb-2">Subcategory</label>
-            <input
-              name="subcategory"
-              type="text"
-              className="w-full px-4 py-2 border rounded-lg"
-              value={formData.subcategory}
-              onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-              required
-            />
-          </div>
-        </div>
+              {loading ? 'Reporting...' : 'Report Found Item'}
+            </button>
 
-        <div className="grid md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block mb-2">Location</label>
-            <input
-              name="location"
-              type="text"
-              className="w-full px-4 py-2 border rounded-lg"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-2">Date</label>
-            <input
-              name="date"
-              type="date"
-              className="w-full px-4 py-2 border rounded-lg"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              required
-            />
-          </div>
-        </div>
+          </form>
 
-        <div className="mb-4">
-          <label className="block mb-2">Image (Required)</label>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleImageChange}
-            className="w-full"
-            required
-          />
-          {formData.previewUrl && (
-            <img
-              src={formData.previewUrl}
-              alt="Preview"
-              className="mt-3 w-full max-h-80 object-contain rounded-lg border"
-            />
-          )}
         </div>
-
-        <div className="mb-4">
-          <label className="block mb-2">Contact Number</label>
-          <input
-            name="contactNumber"
-            type="tel"
-            inputMode="tel"
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="Your phone number"
-            value={formData.contact}
-            onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Shared only with claimants to coordinate safely.
-          </p>
-        </div>
-
-        <button
-          type="submit"
-          className="w-full bg-primary text-white py-2 rounded-lg font-semibold"
-        >
-          Report Found Item
-        </button>
-      </form>
+      </div>
     </div>
   );
 };

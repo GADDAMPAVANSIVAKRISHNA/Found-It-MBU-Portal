@@ -1,225 +1,320 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import imageCompression from 'browser-image-compression';
+import { toast } from 'react-hot-toast';
 
-import { auth } from '../lib/firebase';
 const ReportLost = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: "Cards",
-    subcategory: "",
-    location: "",
-    date: "",
-    imageFile: null,
-    previewUrl: "",
-    contactNumber: ""
+    title: '',
+    description: '',
+    category: 'Electronics',
+    approximateLocation: '',
+    exactLocation: '',
+    dateLost: '',
+    approximateTime: '',
+    contactPreference: 'mobile',
+    email: '',
+    mobile: '',
+    whereKept: 'With me',
+    otherLocation: '',
   });
 
-  const navigate = useNavigate();
+  const categories = [
+    'Electronics', 'Accessories', 'Documents', 'Books',
+    'Clothing', 'Keys', 'Bags', 'Others'
+  ];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const timeOptions = [
+    'Morning (6 AM - 12 PM)',
+    'Afternoon (12 PM - 5 PM)',
+    'Evening (5 PM - 9 PM)',
+    'Night (9 PM - 6 AM)'
+  ];
 
-    try {
-      const fd = new FormData();
-      fd.append("title", formData.title);
-      fd.append("description", formData.description);
-      fd.append("location", formData.location);
-      fd.append("date", formData.date);
-      fd.append("contactNumber", formData.contactNumber);
-      fd.append("category", formData.category);
-      fd.append("subcategory", formData.subcategory);
-
-      if (formData.imageFile) {
-        const compressed = await imageCompression(formData.imageFile, { maxWidthOrHeight: 800, maxSizeMB: 1.2, useWebWorker: true });
-        fd.append("image", new File([compressed], formData.imageFile.name, { type: compressed.type }));
-      }
-
-      // Call backend /api/report-lost endpoint (JWT auth via interceptor)
-      // Get Firebase auth token
-const user = auth.currentUser;
-if (!user) {
-  throw new Error('Please login to report items');
-}
-const token = await user.getIdToken();
-
-// Send to backend with JWT authentication
-const res = await api.post('/report-lost', fd, {
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-});
-
-
-      if (!res.data?.success) {
-        throw new Error(res.data?.message || "Error reporting item");
-      }
-
-      alert("Lost item reported successfully!");
-      navigate("/dashboard");
-    } catch (err) {
-      // log full axios error for debugging
-      console.error('[ReportLost] submit error', err);
-      // prefer backend's `error` field (detailed message), then `message`
-      const serverMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error';
-      alert(`Error reporting item: ${serverMsg}`);
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData({
-        ...formData,
-        imageFile: file,
-        previewUrl: URL.createObjectURL(file),
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // FORM VALIDATION
+  const validateForm = () => {
+    if (!formData.title.trim()) return toast.error('Please enter item title');
+    if (!formData.description.trim()) return toast.error('Please enter item description');
+    if (!formData.approximateLocation.trim()) return toast.error('Please enter approximate location');
+    if (!formData.dateLost) return toast.error('Please select date lost');
+    if (!formData.approximateTime) return toast.error('Please select approximate time');
+
+    if (!formData.mobile.trim() && !formData.email.trim()) {
+      return toast.error('Please provide mobile or email');
+    }
+
+    if (formData.mobile && !/^[0-9]{10}$/.test(formData.mobile)) {
+      return toast.error('Please enter valid 10-digit mobile number');
+    }
+
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      return toast.error('Please enter valid email');
+    }
+
+    return true;
+  };
+
+  // FORM SUBMIT
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('description', formData.description);
+      data.append('category', formData.category);
+      data.append('location', formData.approximateLocation);
+      data.append('date', formData.dateLost);
+      data.append('contactNumber', formData.mobile);
+      data.append('email', formData.email);
+      data.append('subcategory', '');
+      data.append('contactPreference', formData.contactPreference);
+      data.append('whereKept', formData.whereKept);
+
+      if (imageFile) {
+        data.append('image', imageFile);
+      }
+
+      // Submit to backend (JWT included by interceptor)
+      await api.post('/lost', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
+
+      toast.success('Lost item reported successfully!');
+      navigate('/dashboard');
+
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error reporting lost item');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 mt-8">
-      <h2 className="text-2xl font-bold mb-6">Report Lost Item</h2>
+    <div className="min-h-screen py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-8">
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg">
+          {/* Header */}
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">Report Lost Item</h1>
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+              <p className="text-gray-700 text-sm">
+                <span className="font-semibold">📝 Use this form to report items you have lost on campus.</span><br />
+                <span className="text-gray-600">The details you provide help others identify and return your item quickly.</span>
+              </p>
+            </div>
+          </div>
 
-        {/* TITLE */}
-        <div className="mb-4">
-          <label className="block mb-2">Title</label>
-          <input
-            name="title"
-            type="text"
-            className="w-full px-4 py-2 border rounded-lg"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            required
-          />
-        </div>
+          {/* FORM */}
+          <form onSubmit={handleSubmit} className="space-y-6">
 
-        {/* DESCRIPTION */}
-        <div className="mb-4">
-          <label className="block mb-2">Description</label>
-          <textarea
-            name="description"
-            className="w-full px-4 py-2 border rounded-lg"
-            rows="4"
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            required
-          />
-        </div>
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Item Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g., Silver Laptop, Blue Backpack"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition"
+              />
+            </div>
 
-        {/* CATEGORY + SUBCATEGORY */}
-        <div className="grid md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block mb-2">Category</label>
-            <select
-              name="category"
-              className="w-full px-4 py-2 border rounded-lg"
-              value={formData.category}
-              onChange={(e) =>
-                setFormData({ ...formData, category: e.target.value })
-              }
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Detailed Description *</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows="4"
+                placeholder="Describe distinguishing features, color, brand, condition, etc."
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Approx Location */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Approximate Location *</label>
+              <input
+                type="text"
+                name="approximateLocation"
+                value={formData.approximateLocation}
+                onChange={handleChange}
+                placeholder="Library, Cafeteria, Classroom, etc."
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+              />
+            </div>
+
+            {/* Date + Time */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Date Lost *</label>
+                <input
+                  type="date"
+                  name="dateLost"
+                  value={formData.dateLost}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Approximate Time *</label>
+                <select
+                  name="approximateTime"
+                  value={formData.approximateTime}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                >
+                  <option value="">Select time range</option>
+                  {timeOptions.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Image (Optional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+              />
+
+              {imagePreview && (
+                <div className="mt-4 flex justify-center">
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="max-h-64 max-w-sm rounded-lg shadow-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setImagePreview(null); setImageFile(null); }}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Contact Info */}
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Contact Information</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Mobile</label>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    placeholder="10-digit mobile number"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="your.email@mbu.edu.in"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                  />
+                </div>
+
+              </div>
+            </div>
+
+            {/* Where is the item kept? */}
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Where is the item kept? *</label>
+              <select name="whereKept" value={formData.whereKept} onChange={handleChange} className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg">
+                <option value="With me">With me</option>
+                <option value="University Office">University Office</option>
+                <option value="Security Check 1st gate">Security Check 1st gate</option>
+                <option value="Security Check 2nd gate">Security Check 2nd gate</option>
+                <option value="Other">Other</option>
+              </select>
+              {formData.whereKept === 'Other' && (
+                <div className="mt-3">
+                  <input
+                    type="text"
+                    placeholder="Please specify where the item is kept"
+                    value={formData.otherLocation || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, otherLocation: e.target.value }))}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md"
             >
-              <option>Cards</option>
-              <option>Electronic Devices</option>
-              <option>Books</option>
-              <option>Others</option>
-            </select>
-          </div>
+              {loading ? 'Reporting...' : 'Report Lost Item'}
+            </button>
 
-          <div>
-            <label className="block mb-2">Subcategory</label>
-            <input
-              name="subcategory"
-              type="text"
-              className="w-full px-4 py-2 border rounded-lg"
-              value={formData.subcategory}
-              onChange={(e) =>
-                setFormData({ ...formData, subcategory: e.target.value })
-              }
-              required
-            />
-          </div>
+          </form>
+
         </div>
-
-        {/* LOCATION + DATE */}
-        <div className="grid md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block mb-2">Location</label>
-            <input
-              name="location"
-              type="text"
-              className="w-full px-4 py-2 border rounded-lg"
-              value={formData.location}
-              onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
-              }
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2">Date</label>
-            <input
-              name="date"
-              type="date"
-              className="w-full px-4 py-2 border rounded-lg"
-              value={formData.date}
-              onChange={(e) =>
-                setFormData({ ...formData, date: e.target.value })
-              }
-              required
-            />
-          </div>
-        </div>
-
-        {/* IMAGE */}
-        <div className="mb-4">
-          <label className="block mb-2">Image (Optional)</label>
-          <input
-            name="image"
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="w-full"
-          />
-
-          {formData.previewUrl && (
-            <img
-              src={formData.previewUrl}
-              alt="Preview"
-              className="mt-3 w-full max-h-80 object-contain rounded-lg border"
-            />
-          )}
-        </div>
-
-        {/* CONTACT NUMBER */}
-        <div className="mb-4">
-          <label className="block mb-2">Contact Number</label>
-          <input
-            name="contactNumber"
-            type="tel"
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="Your phone number"
-            value={formData.contactNumber}
-            onChange={(e) =>
-              setFormData({ ...formData, contactNumber: e.target.value })
-            }
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="w-full bg-primary text-white py-2 rounded-lg font-semibold"
-        >
-          Report Lost Item
-        </button>
-      </form>
+      </div>
     </div>
   );
 };

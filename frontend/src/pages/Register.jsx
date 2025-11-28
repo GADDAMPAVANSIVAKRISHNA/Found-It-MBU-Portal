@@ -11,13 +11,15 @@ const Register = () => {
     confirmPassword: '',
     branch: '',
     year: '',
-    contactNumber: ''
+    contactNumber: '',
+    gender: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(false);
+  const [checking, setChecking] = useState(false);
   const navigate = useNavigate();
 
   const handlePasswordChange = (e) => {
@@ -83,17 +85,27 @@ const Register = () => {
         });
       }
 
+      // Upsert profile to backend with registration details
+      try {
+        const api = (await import('../utils/api')).default;
+        await api.post('/users/upsert-by-email', {
+          name: formData.name,
+          email: formData.email,
+          branch: formData.branch,
+          year: formData.year,
+          contactNumber: formData.contactNumber,
+          gender: formData.gender
+        });
+      } catch (e) {
+        console.warn('Upsert user failed', e?.message);
+      }
+
       // Send email verification
       await sendEmailVerification(cred.user);
 
       setEmailSent(true);
       setSuccess('Registration successful! Please check your email to verify your account.');
       setLoading(false);
-
-      // Redirect to login after 3 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
 
     } catch (err) {
       setLoading(false);
@@ -122,8 +134,29 @@ const Register = () => {
     }
   };
 
+  const handleIHaveVerified = async () => {
+    try {
+      setChecking(true);
+      await auth.currentUser.reload();
+      if (auth.currentUser.emailVerified) {
+        navigate('/login');
+      } else {
+        setError('Still not verified or link expired. Please resend the verification email.');
+      }
+    } catch (_) {
+      setError('Unable to check verification. Please try again.');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  
+
   return (
     <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded-lg shadow-lg">
+      <div className="flex justify-center mb-4">
+        <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-14 w-auto" />
+      </div>
       <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Register for Found-It</h2>
       
       {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-center">{error}</div>}
@@ -140,6 +173,11 @@ const Register = () => {
           >
             Resend Verification Email
           </button>
+          <div className="mt-4">
+            <button type="button" className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition" onClick={handleIHaveVerified} disabled={checking}>
+              {checking ? 'Checking...' : 'Verification confirmed: Login'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -225,6 +263,32 @@ const Register = () => {
               onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
               placeholder="e.g., Computer Science"
             />
+          </div>
+
+          <div className="mb-4">
+            <span className="block mb-2 font-semibold text-gray-700">Gender</span>
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="male"
+                  checked={formData.gender === 'male'}
+                  onChange={(e)=>setFormData({...formData, gender: e.target.value})}
+                />
+                <span>Male</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="female"
+                  checked={formData.gender === 'female'}
+                  onChange={(e)=>setFormData({...formData, gender: e.target.value})}
+                />
+                <span>Female</span>
+              </label>
+            </div>
           </div>
 
           <div className="mb-4">

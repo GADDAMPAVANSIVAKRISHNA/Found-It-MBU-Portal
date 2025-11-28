@@ -20,6 +20,7 @@ const FoundItemSchema = new mongoose.Schema({
   description: { type: String, required: true },
   location: { type: String, required: true },
   date: { type: String, required: true },
+  time: { type: String, default: '' },
   contactNumber: { type: String, required: true },
   category: { type: String, required: true },
   subcategory: { type: String },
@@ -28,6 +29,7 @@ const FoundItemSchema = new mongoose.Schema({
   userName: { type: String },
   userEmail: { type: String },
   userContact: { type: String },
+  whereKept: { type: String, enum: ['With me','Lost & Found Office','Security Office',''], default: '' },
   status: { type: String, enum: ['Active', 'Claimed', 'Returned'], default: 'Active' },
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now }

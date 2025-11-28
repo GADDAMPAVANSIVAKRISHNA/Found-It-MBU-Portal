@@ -20,9 +20,8 @@ const ItemDetails = () => {
 
   const loadItem = async () => {
     try {
-      const [type, mongoId] = id.split('_');
-      const { data } = await api.get(`/api/items/gallery/${type}/${mongoId}`);
-      setItem(data.item);
+      const { data } = await api.get(`/items/${id}`);
+      setItem(data.item || data);
       const u = auth.currentUser;
       if (u) setUserInfo({ name: u.displayName || '', email: u.email || '', contactNumber: '' });
     } catch (err) {
@@ -120,8 +119,9 @@ const ItemDetails = () => {
 
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-bold mb-2">Contact:</h3>
-              <p><strong>Name:</strong> {item.user_name}</p>
-              <p><strong>Phone:</strong> {item.user_contact}</p>
+              <p><strong>Name:</strong> {item.userName || ''}</p>
+              <p><strong>Phone:</strong> {item.userContact || ''}</p>
+              <p><strong>Email:</strong> {item.userEmail || ''}</p>
             </div>
 
             {item.item_type === 'Found' && item.status === 'Active' && (

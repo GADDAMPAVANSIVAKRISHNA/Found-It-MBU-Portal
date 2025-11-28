@@ -21,10 +21,10 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const { name, branch, year, contactNumber } = req.body;
+    const { name, branch, year, contactNumber, gender } = req.body;
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { name, branch, year, contactNumber },
+      { name, branch, year, contactNumber, gender },
       { new: true }
     ).select('-password -verificationToken -resetPasswordToken');
 
@@ -37,7 +37,7 @@ router.put('/:id', auth, async (req, res) => {
 // Upsert user by email (for Firebase auth flow)
 router.post('/upsert-by-email', async (req, res) => {
   try {
-    const { name, email, branch, year, contactNumber, role } = req.body;
+    const { name, email, branch, year, contactNumber, gender, role } = req.body;
     if (!email || !/@mbu\.asia$/.test(email)) {
       return res.status(400).json({ error: 'Valid @mbu.asia email required' });
     }
@@ -46,10 +46,12 @@ router.post('/upsert-by-email', async (req, res) => {
       user = new User({
         name: name || email.split('@')[0],
         email,
+        mbuEmail: email,
         password: Math.random().toString(36).slice(2),
         branch: branch || 'NA',
         year: year || 'NA',
         contactNumber: contactNumber || '',
+        gender: gender || '',
         role: role === 'admin' ? 'admin' : 'student',
         isVerified: true
       });
@@ -59,6 +61,7 @@ router.post('/upsert-by-email', async (req, res) => {
       user.branch = branch || user.branch;
       user.year = year || user.year;
       user.contactNumber = contactNumber || user.contactNumber;
+      if (gender !== undefined) user.gender = gender || user.gender;
       if (role) user.role = role;
       user.isVerified = true;
       await user.save();
@@ -70,6 +73,7 @@ router.post('/upsert-by-email', async (req, res) => {
       branch: user.branch,
       year: user.year,
       contactNumber: user.contactNumber,
+      gender: user.gender,
       role: user.role
     }});
   } catch (error) {
@@ -85,6 +89,24 @@ router.get('/by-email', async (req, res) => {
     const user = await User.findOne({ email }).select('-password -verificationToken -resetPasswordToken');
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update profile (name, branch, year, contactNumber)
+router.patch('/:id', async (req, res) => {
+  try {
+    const { name, branch, year, contactNumber, gender } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (branch !== undefined) updates.branch = branch;
+    if (year !== undefined) updates.year = year;
+    if (contactNumber !== undefined) updates.contactNumber = contactNumber;
+    if (gender !== undefined) updates.gender = gender;
+    const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
