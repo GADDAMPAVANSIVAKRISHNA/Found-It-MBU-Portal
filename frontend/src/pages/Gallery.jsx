@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../utils/api';
-import { toast } from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { apiFetch } from "../utils/api";
+import { toast } from "react-hot-toast";
 
 const Gallery = () => {
   const [items, setItems] = useState([]);
@@ -11,11 +11,11 @@ const Gallery = () => {
   const [contactItem, setContactItem] = useState(null);
 
   const [filters, setFilters] = useState({
-    category: '',
-    status: '',
-    q: '',
-    startDate: '',
-    endDate: '',
+    category: "",
+    status: "",
+    q: "",
+    startDate: "",
+    endDate: "",
   });
 
   useEffect(() => {
@@ -26,29 +26,46 @@ const Gallery = () => {
     try {
       setLoading(true);
 
-      // ❌ Wrong earlier: /api/items
-      // ✔ Correct: /items
-      const response = await api.get('/items', {
-        params: {
-          ...filters,
-          status: filters.status === 'unclaimed' ? 'Active' : filters.status === '' ? '' : filters.status.charAt(0).toUpperCase() + filters.status.slice(1),
-          page,
-          limit: 20,
-        },
-      });
+      // Convert UI status to backend status
+      const statusFormatted =
+        filters.status === "unclaimed"
+          ? "Active"
+          : filters.status === ""
+          ? ""
+          : filters.status.charAt(0).toUpperCase() +
+            filters.status.slice(1);
 
-      const data = response.data;
+      const query = new URLSearchParams({
+        category: filters.category,
+        status: statusFormatted,
+        q: filters.q,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        page,
+        limit: 20,
+      }).toString();
 
-      // Handle backend returns (array OR {items:[]})
+      const res = await apiFetch(`/api/items?${query}`, { method: "GET" });
+
+      if (!res.ok) {
+        console.log(res);
+        toast.error("Failed to load items");
+        setItems([]);
+        return;
+      }
+
+      const data = res.data;
+
       const itemsArray = Array.isArray(data)
         ? data
         : data.items || [];
 
       setItems(itemsArray);
       setTotalPages(data.totalPages || 1);
+
     } catch (error) {
-      console.error('Failed to fetch items:', error);
-      toast.error('Failed to load items');
+      console.error("Failed to fetch items:", error);
+      toast.error("Failed to load items");
       setItems([]);
     } finally {
       setLoading(false);
@@ -77,7 +94,7 @@ const Gallery = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Browse Lost&Found Items</h1>
+      <h1 className="text-3xl font-bold mb-8">Browse Lost & Found Items</h1>
 
       {/* Filters */}
       <div className="mb-8 flex gap-4 flex-wrap">
@@ -116,16 +133,27 @@ const Gallery = () => {
           onChange={handleFilterChange}
           className="px-4 py-2 border rounded-lg flex-1 min-w-xs"
         />
-        <input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="px-4 py-2 border rounded-lg" />
-        <input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="px-4 py-2 border rounded-lg" />
+
+        <input
+          type="date"
+          name="startDate"
+          value={filters.startDate}
+          onChange={handleFilterChange}
+          className="px-4 py-2 border rounded-lg"
+        />
+        <input
+          type="date"
+          name="endDate"
+          value={filters.endDate}
+          onChange={handleFilterChange}
+          className="px-4 py-2 border rounded-lg"
+        />
       </div>
 
       {/* NO ITEMS */}
       {items.length === 0 ? (
         <div className="text-center py-20 bg-gray-50 rounded-lg">
-          <p className="text-xl text-gray-600">
-            No items match your filters.
-          </p>
+          <p className="text-xl text-gray-600">No items match your filters.</p>
         </div>
       ) : (
         <>
@@ -143,12 +171,10 @@ const Gallery = () => {
                       src={item.imageUrl}
                       alt={item.title}
                       className="w-full h-full object-cover"
-                      onError={(e) => (e.target.style.display = 'none')}
+                      onError={(e) => (e.target.style.display = "none")}
                     />
                   ) : (
-                    <p className="text-gray-400 text-center">
-                      No Image
-                    </p>
+                    <p className="text-gray-400 text-center">No Image</p>
                   )}
                 </div>
 
@@ -164,27 +190,34 @@ const Gallery = () => {
                       {item.category}
                     </span>
 
-                    <span className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                      (item.status || '').toLowerCase() === 'claimed'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : (item.status || '').toLowerCase() === 'returned'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {item.status ? (item.status.toLowerCase() === 'active' ? 'Unclaimed' : item.status) : 'Unclaimed'}
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full font-semibold ${
+                        (item.status || "").toLowerCase() === "claimed"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : (item.status || "").toLowerCase() === "returned"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {item.status
+                        ? item.status.toLowerCase() === "active"
+                          ? "Unclaimed"
+                          : item.status
+                        : "Unclaimed"}
                     </span>
                   </div>
 
+                  {/* Location + Date */}
                   <div className="text-sm text-gray-600 mb-4 space-y-1">
                     <p>📍 {item.location || item.approximateLocation}</p>
                     <p>
-                      📅{' '}
+                      📅{" "}
                       {new Date(
                         item.date || item.dateFound || item.dateLost
-                      ).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
+                      ).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
                       })}
                     </p>
                   </div>
@@ -203,7 +236,10 @@ const Gallery = () => {
                       View Details
                     </Link>
 
-                    <button className="flex-1 bg-green-600 text-white px-4 py-2 rounded text-sm" onClick={() => setContactItem(item)}>
+                    <button
+                      className="flex-1 bg-green-600 text-white px-4 py-2 rounded text-sm"
+                      onClick={() => setContactItem(item)}
+                    >
                       Connect
                     </button>
                   </div>
@@ -238,6 +274,8 @@ const Gallery = () => {
           )}
         </>
       )}
+
+      {/* CONTACT MODAL */}
       {contactItem && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
@@ -245,17 +283,39 @@ const Gallery = () => {
               <h3 className="text-xl font-bold">Contact Details</h3>
               <button onClick={() => setContactItem(null)}>✕</button>
             </div>
+
             <div className="space-y-2 text-sm">
-              <p><strong>Name:</strong> {contactItem.userName || 'N/A'}</p>
-              <p><strong>Mobile:</strong> {contactItem.userContact || 'N/A'}</p>
-              <p><strong>Email:</strong> {contactItem.userEmail || 'N/A'}</p>
+              <p>
+                <strong>Name:</strong> {contactItem.userName || "N/A"}
+              </p>
+              <p>
+                <strong>Mobile:</strong> {contactItem.userContact || "N/A"}
+              </p>
+              <p>
+                <strong>Email:</strong> {contactItem.userEmail || "N/A"}
+              </p>
+
               <hr className="my-2" />
-              <p><strong>Item:</strong> {contactItem.title}</p>
+
+              <p>
+                <strong>Item:</strong> {contactItem.title}
+              </p>
               <p className="text-gray-600">{contactItem.description}</p>
             </div>
+
             <div className="mt-4 flex gap-2">
-              <Link to={`/item/${contactItem._id}`} className="px-4 py-2 bg-blue-600 text-white rounded">View Details</Link>
-              <button className="px-4 py-2 border rounded" onClick={() => setContactItem(null)}>Close</button>
+              <Link
+                to={`/item/${contactItem._id}`}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+              >
+                View Details
+              </Link>
+              <button
+                className="px-4 py-2 border rounded"
+                onClick={() => setContactItem(null)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

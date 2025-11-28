@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
-import { auth } from '../lib/firebase';
-import './Dashboard.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../utils/api";
+import { auth } from "../lib/firebase";
+import "./Dashboard.css";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -20,24 +20,41 @@ const Dashboard = () => {
     try {
       const user = auth.currentUser;
       if (!user) {
-        navigate('/login');
+        navigate("/login");
         return;
       }
 
-      const response = await api.get('/dashboard', {
-        headers: { Authorization: `Bearer ${await user.getIdToken()}` }
+      // Fetch user profile from backend
+      const profileRes = await apiFetch("/api/users/me", { method: "GET" });
+
+      if (!profileRes.ok) {
+        console.log(profileRes);
+        return;
+      }
+
+      const profile = profileRes.data;
+
+      setUserData(profile);
+      setEditData({
+        fullName: profile.name || "",
+        branch: profile.branch || "",
+        year: profile.year || "",
+        gender: profile.gender || "",
       });
 
-      const data = response.data;
-      setUserData(data.userProfile);
-      setEditData(data.userProfile);
-      setStats({
-        lost: data.myItems?.lost?.length || 0,
-        found: data.myItems?.found?.length || 0,
-      });
+      // Fetch user's lost/found stats
+      const statsRes = await apiFetch("/api/items/my", { method: "GET" });
+
+      if (statsRes.ok) {
+        setStats({
+          lost: statsRes.data?.lost?.length || 0,
+          found: statsRes.data?.found?.length || 0,
+        });
+      }
+
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error("Error fetching dashboard data:", error);
       setLoading(false);
     }
   };
@@ -51,14 +68,35 @@ const Dashboard = () => {
 
   const handleSaveChanges = async () => {
     try {
-      const user = auth.currentUser;
-      await api.put('/profile', editData, {
-        headers: { Authorization: `Bearer ${await user.getIdToken()}` }
+      const payload = {
+        name: editData.fullName,
+        branch: editData.branch,
+        year: editData.year,
+        gender: editData.gender,
+      };
+
+      const res = await apiFetch("/api/users/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      setUserData(editData);
+
+      if (!res.ok) {
+        console.log(res);
+        return;
+      }
+
+      setUserData({
+        ...userData,
+        name: payload.name,
+        branch: payload.branch,
+        year: payload.year,
+        gender: payload.gender,
+      });
+
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
     }
   };
 
@@ -69,16 +107,20 @@ const Dashboard = () => {
   return (
     <div className="dashboard-wrapper">
       <div className="dashboard-bg"></div>
-      
+
       <div className="dashboard-container">
         {/* Welcome Section */}
         <div className="welcome-card">
           <div className="welcome-header">
             <div className="user-greeting">
-              <h1>Welcome, <span className="user-name">{userData?.fullName || 'User'}</span>!</h1>
+              <h1>
+                Welcome,{" "}
+                <span className="user-name">{userData?.name || "User"}</span>!
+              </h1>
               <p className="user-email">{userData?.email}</p>
             </div>
-            <button 
+
+            <button
               className="edit-profile-btn"
               onClick={() => setIsEditing(true)}
             >
@@ -90,19 +132,19 @@ const Dashboard = () => {
           <div className="user-details-row">
             <div className="detail-item">
               <span className="detail-label">Email</span>
-              <span className="detail-value">{userData?.email || '—'}</span>
+              <span className="detail-value">{userData?.email || "—"}</span>
             </div>
             <div className="detail-item">
               <span className="detail-label">Branch</span>
-              <span className="detail-value">{userData?.branch || '—'}</span>
+              <span className="detail-value">{userData?.branch || "—"}</span>
             </div>
             <div className="detail-item">
               <span className="detail-label">Year</span>
-              <span className="detail-value">{userData?.year || '—'}</span>
+              <span className="detail-value">{userData?.year || "—"}</span>
             </div>
             <div className="detail-item">
               <span className="detail-label">Gender</span>
-              <span className="detail-value">{userData?.gender || '—'}</span>
+              <span className="detail-value">{userData?.gender || "—"}</span>
             </div>
           </div>
         </div>
@@ -122,18 +164,34 @@ const Dashboard = () => {
 
       {/* Edit Profile Modal */}
       {isEditing && (
-        <div className="modal-overlay" onClick={() => {
-          setIsEditing(false);
-          setEditData(userData);
-        }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setIsEditing(false);
+            setEditData({
+              fullName: userData.name,
+              branch: userData.branch,
+              year: userData.year,
+              gender: userData.gender,
+            });
+          }}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h2>Edit Profile</h2>
-              <button 
+              <button
                 className="modal-close"
                 onClick={() => {
                   setIsEditing(false);
-                  setEditData(userData);
+                  setEditData({
+                    fullName: userData.name,
+                    branch: userData.branch,
+                    year: userData.year,
+                    gender: userData.gender,
+                  });
                 }}
               >
                 ✕
@@ -146,16 +204,21 @@ const Dashboard = () => {
                   <label>Full Name</label>
                   <input
                     type="text"
-                    value={editData.fullName || ''}
-                    onChange={(e) => handleEditChange('fullName', e.target.value)}
+                    value={editData.fullName || ""}
+                    onChange={(e) =>
+                      handleEditChange("fullName", e.target.value)
+                    }
                   />
                 </div>
+
                 <div className="form-group">
                   <label>Branch</label>
                   <input
                     type="text"
-                    value={editData.branch || ''}
-                    onChange={(e) => handleEditChange('branch', e.target.value)}
+                    value={editData.branch || ""}
+                    onChange={(e) =>
+                      handleEditChange("branch", e.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -165,15 +228,20 @@ const Dashboard = () => {
                   <label>Year</label>
                   <input
                     type="text"
-                    value={editData.year || ''}
-                    onChange={(e) => handleEditChange('year', e.target.value)}
+                    value={editData.year || ""}
+                    onChange={(e) =>
+                      handleEditChange("year", e.target.value)
+                    }
                   />
                 </div>
+
                 <div className="form-group">
                   <label>Gender</label>
                   <select
-                    value={editData.gender || ''}
-                    onChange={(e) => handleEditChange('gender', e.target.value)}
+                    value={editData.gender || ""}
+                    onChange={(e) =>
+                      handleEditChange("gender", e.target.value)
+                    }
                   >
                     <option value="">Select</option>
                     <option value="Male">Male</option>
@@ -189,15 +257,18 @@ const Dashboard = () => {
                 className="btn-cancel"
                 onClick={() => {
                   setIsEditing(false);
-                  setEditData(userData);
+                  setEditData({
+                    fullName: userData.name,
+                    branch: userData.branch,
+                    year: userData.year,
+                    gender: userData.gender,
+                  });
                 }}
               >
                 Cancel
               </button>
-              <button
-                className="btn-save"
-                onClick={handleSaveChanges}
-              >
+
+              <button className="btn-save" onClick={handleSaveChanges}>
                 Save
               </button>
             </div>

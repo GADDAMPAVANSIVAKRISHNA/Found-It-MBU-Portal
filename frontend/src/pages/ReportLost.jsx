@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import { apiFetch } from '../utils/api';
 import { toast } from 'react-hot-toast';
 
 const ReportLost = () => {
@@ -92,24 +92,31 @@ const ReportLost = () => {
       data.append('date', formData.dateLost);
       data.append('contactNumber', formData.mobile);
       data.append('email', formData.email);
-      data.append('subcategory', '');
       data.append('contactPreference', formData.contactPreference);
       data.append('whereKept', formData.whereKept);
+      data.append('otherLocation', formData.otherLocation || '');
 
       if (imageFile) {
         data.append('image', imageFile);
       }
 
-      // Submit to backend (JWT included by interceptor)
-      await api.post('/lost', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // USE apiFetch (adds token automatically)
+      const res = await apiFetch('/api/lost', {
+        method: 'POST',
+        body: data, // FormData (no need for headers)
       });
+
+      if (!res.ok) {
+        console.log(res.data);
+        return toast.error(res?.data?.message || 'Error reporting lost item');
+      }
 
       toast.success('Lost item reported successfully!');
       navigate('/dashboard');
 
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error reporting lost item');
+      console.log(error);
+      toast.error(error?.response?.data?.message || 'Error reporting lost item');
     } finally {
       setLoading(false);
     }
@@ -289,6 +296,7 @@ const ReportLost = () => {
                 <option value="Security Check 2nd gate">Security Check 2nd gate</option>
                 <option value="Other">Other</option>
               </select>
+
               {formData.whereKept === 'Other' && (
                 <div className="mt-3">
                   <input

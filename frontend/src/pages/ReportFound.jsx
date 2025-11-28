@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import { apiFetch } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 
@@ -97,6 +97,7 @@ const ReportFound = () => {
       data.append('email', formData.email);
       data.append('contactPreference', formData.contactPreference);
       data.append('whereKept', formData.whereKept);
+      data.append('otherLocation', formData.otherLocation || '');
 
       if (imageFile) {
         const compressed = await imageCompression(imageFile, {
@@ -107,16 +108,23 @@ const ReportFound = () => {
         data.append('image', compressed);
       }
 
-      // Submit to backend (JWT included by interceptor)
-      await api.post('/found', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // Submit to backend using apiFetch (with Firebase token)
+      const res = await apiFetch('/api/found', {
+        method: 'POST',
+        body: data, // FormData (no need to set headers)
       });
+
+      if (!res.ok) {
+        console.log(res.data);
+        return toast.error(res?.data?.message || 'Error reporting found item');
+      }
 
       toast.success('Found item reported successfully!');
       navigate('/dashboard');
 
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error reporting found item');
+      console.log(error);
+      toast.error(error?.response?.data?.message || 'Error reporting found item');
     } finally {
       setLoading(false);
     }
@@ -310,6 +318,7 @@ const ReportFound = () => {
                 <option value="Security Check 2nd gate">Security Check 2nd gate</option>
                 <option value="Other">Other</option>
               </select>
+
               {formData.whereKept === 'Other' && (
                 <div className="mt-3">
                   <input
