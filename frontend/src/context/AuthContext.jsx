@@ -3,7 +3,7 @@ import { apiFetch } from "../utils/api";
 
 // IMPORTANT: Import the Firebase auth instance from the correct file
 // If your firebase.js is in /frontend/lib/firebase.js → change "../firebase" to "../lib/firebase"
-import { auth } from "../lib/firebase";
+import { auth } from "../firebase";
 
 import {
   onAuthStateChanged,
