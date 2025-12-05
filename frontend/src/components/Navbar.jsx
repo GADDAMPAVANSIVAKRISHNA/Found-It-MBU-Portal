@@ -54,7 +54,7 @@ const Navbar = () => {
                   className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-700 hover:text-red-600 hover:bg-gray-100 text-xs sm:text-sm transition"
                   onClick={() => { logout(); navigate('/'); }}
                 >
-                  Logout
+                  ⟶ Logout
                 </button>
               </>
             ) : (

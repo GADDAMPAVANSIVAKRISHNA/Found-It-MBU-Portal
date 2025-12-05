@@ -9,6 +9,7 @@ const Gallery = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [contactItem, setContactItem] = useState(null);
+  const [reporterRoll, setReporterRoll] = useState("");
 
   const [filters, setFilters] = useState({
     category: "",
@@ -21,6 +22,29 @@ const Gallery = () => {
   useEffect(() => {
     fetchItems();
   }, [page, filters]);
+
+  useEffect(() => {
+    const deriveRoll = async () => {
+      if (!contactItem) { setReporterRoll(""); return; }
+      const email = contactItem.userEmail || "";
+      let rn = "";
+      if (email.includes("@mbu.asia")) rn = email.split("@mbu.asia")[0] || "";
+      else if (email.includes("@mbu.edu.in")) rn = email.split("@mbu.edu.in")[0] || "";
+      if (rn) { setReporterRoll(rn); return; }
+      const uid = contactItem.userId;
+      if (uid) {
+        const res = await apiFetch(`/api/users/${uid}`, { method: "GET" });
+        if (res.ok && res.data && res.data.email) {
+          const em = res.data.email || "";
+          if (em.includes("@mbu.asia")) rn = em.split("@mbu.asia")[0] || "";
+          else if (em.includes("@mbu.edu.in")) rn = em.split("@mbu.edu.in")[0] || "";
+        }
+      }
+      if (!rn) rn = (email || "").split("@")[0] || "";
+      setReporterRoll(rn || "");
+    };
+    deriveRoll();
+  }, [contactItem]);
 
   const fetchItems = async () => {
     try {
@@ -282,7 +306,7 @@ const Gallery = () => {
 
             <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
               <p>
-                <strong>Roll Number:</strong> {(contactItem.userEmail || "N/A").split('@')[0] || "N/A"}
+                <strong>Name:</strong> {reporterRoll || "N/A"}
               </p>
               <p>
                 <strong>Mobile:</strong> {contactItem.userContact || "N/A"}
