@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch } from "../utils/api";
-import { auth } from "../lib/firebase";
-import { signInWithEmailAndPassword, signOut, fetchSignInMethodsForEmail } from "firebase/auth";
+import { useAuth } from "../context/AuthContext";
 import { toast } from "react-hot-toast";
 
 const Login = () => {
@@ -11,6 +9,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -18,52 +17,24 @@ const Login = () => {
     setError("");
 
     try {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (!methods || methods.length === 0) {
-        setError('User not registered.');
-        toast.error('User not registered.');
-        setLoading(false);
-        return;
-      }
-
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      const u = result.user;
-
-      if (!u.emailVerified) {
-        await signOut(auth);
-        setError("Please verify your email before logging in.");
-        toast.error("Please verify your email before logging in.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await apiFetch(`/api/users/by-email?email=${encodeURIComponent(email)}`, { method: 'GET' });
-      if (res.ok) {
-        localStorage.setItem('user', JSON.stringify({
-          id: res.data._id,
-          email: res.data.email,
-          name: res.data.name,
-          branch: res.data.branch,
-          year: res.data.year,
-          contactNumber: res.data.contactNumber,
-          gender: res.data.gender,
-          role: res.data.role || 'student'
-        }));
-      }
-
+      const user = await login(email, password);
+      // If login resolves, AuthContext already fetched profile and set user
       toast.success("Login successful!");
       navigate("/dashboard");
     } catch (err) {
       const code = err?.code || '';
-      if (code === 'auth/user-not-found') {
-        setError('User not registered.');
-        toast.error('User not registered.');
+      if (code === 'email-not-verified') {
+        setError('Please verify your email');
+        toast.error('Please verify your email');
+      } else if (code === 'profile-missing') {
+        setError('User not registered');
+        toast.error('User not registered');
       } else if (code === 'auth/wrong-password') {
         setError('Incorrect username or password.');
         toast.error('Incorrect username or password.');
-      } else if (code === 'auth/invalid-email') {
-        setError('Invalid email address.');
-        toast.error('Invalid email address.');
+      } else if (code === 'auth/user-not-found') {
+        setError('User not registered.');
+        toast.error('User not registered.');
       } else {
         setError('Login failed. Please try again.');
         toast.error('Login failed');

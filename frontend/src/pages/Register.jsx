@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { apiFetch } from '../utils/api';
 import { auth, actionCodeSettings } from '../lib/firebase';
-import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, fetchSignInMethodsForEmail, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -52,23 +52,57 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const methods = await fetchSignInMethodsForEmail(auth, formData.email);
-      if (methods && methods.length > 0) {
-        setError('User already registered');
-        setLoading(false);
-        return;
+      // Attempt to create Firebase user
+      let cred = null;
+      try {
+        cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      } catch (fbErr) {
+        // If Firebase account already exists, we'll still try to create backend profile and attempt to send verification by signing in briefly
+        if (fbErr?.code === 'auth/email-already-in-use') {
+          // Try to create backend profile even if Firebase user exists
+          const registerResExisting = await apiFetch('/api/users/register', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: formData.email,
+              name: formData.name,
+              branch: formData.branch,
+              year: formData.year,
+              contactNumber: formData.contactNumber,
+              gender: formData.gender,
+            }),
+          });
+
+          // Try to sign in temporarily to send verification email (then sign out)
+          try {
+            const temp = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+            if (temp && !temp.user.emailVerified) {
+              await sendEmailVerification(temp.user, actionCodeSettings);
+            }
+            await signOut(auth);
+          } catch (signInErr) {
+            // cannot sign in (wrong password) - continue anyway
+          }
+
+          setSuccess('If an account exists, a verification email was sent (if possible). Please check your inbox.');
+          setEmailSent(true);
+          setLoading(false);
+          navigate(`/email-sent?email=${encodeURIComponent(formData.email)}`);
+          return;
+        } else {
+          throw fbErr;
+        }
       }
 
-      const cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      // At this point Firebase user was created
       await updateProfile(cred.user, { displayName: formData.name });
       await sendEmailVerification(cred.user, actionCodeSettings);
-      await signOut(auth);
 
-      await apiFetch('/api/users/upsert-by-email', {
+      // Create user in MongoDB immediately after Firebase creation
+      const registerRes = await apiFetch('/api/users/register', {
         method: 'POST',
         body: JSON.stringify({
+          email: cred.user.email,
           name: formData.name,
-          email: formData.email,
           branch: formData.branch,
           year: formData.year,
           contactNumber: formData.contactNumber,
@@ -76,12 +110,17 @@ const Register = () => {
         }),
       });
 
+      if (!registerRes.ok && registerRes.status !== 409) {
+        console.warn('Profile register failed', registerRes.status, registerRes.data);
+      }
+
+      // Do NOT keep the user logged in
+      try { await signOut(auth); } catch (e) { }
+
       setSuccess('Verification email sent. Please check your inbox.');
       setEmailSent(true);
       setLoading(false);
-      setTimeout(() => {
-        navigate(`/email-sent?email=${encodeURIComponent(formData.email)}`);
-      }, 800);
+      navigate(`/email-sent?email=${encodeURIComponent(formData.email)}`);
 
     } catch (err) {
       console.error('Register error', err);
@@ -132,11 +171,7 @@ const Register = () => {
             <div>
               <label className="block mb-2 font-semibold text-gray-700" htmlFor="confirmPassword">Confirm Password *</label>
               <input id="confirmPassword" type="password" className="w-full px-4 py-2 border rounded" value={formData.confirmPassword} onChange={handleChange('confirmPassword')} required placeholder="Repeat password" />
-              {formData.confirmPassword && (
-                <p className={`text-sm mt-1 ${formData.password === formData.confirmPassword ? 'text-green-600' : 'text-red-600'}`}>
-                  {formData.password === formData.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
-                </p>
-              )}
+              {passwordMatch && <p className="text-sm text-green-600 mt-1">Passwords match</p>}
             </div>
             <div>
               <label className="block mb-2 font-semibold text-gray-700" htmlFor="contactNumber">Contact Number</label>

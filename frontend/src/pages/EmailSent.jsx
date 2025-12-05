@@ -10,6 +10,18 @@ const EmailSent = () => {
   const [resending, setResending] = useState(false);
   const [message, setMessage] = useState('Verification email sent. Please check your inbox.');
 
+  useEffect(() => {
+    const ping = async () => {
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+        if (auth.currentUser.emailVerified) {
+          navigate('/login');
+        }
+      }
+    };
+    ping();
+  }, [navigate]);
+
   const handleResend = async () => {
     try {
       setResending(true);
@@ -17,10 +29,7 @@ const EmailSent = () => {
         await sendEmailVerification(auth.currentUser, actionCodeSettings);
         setMessage('Verification email resent. Please check your inbox.');
       } else {
-        // Since we sign out after register, this is the likely path.
-        // We cannot resend without a session.
-        setMessage('Please log in to resend the verification email.');
-        setTimeout(() => navigate('/login'), 2000);
+        setMessage('Cannot resend: no user session. Please login to resend or register again.');
       }
     } catch (e) {
       setMessage('Failed to resend verification email.');

@@ -11,6 +11,7 @@
     "@azure/msal-browser": "^4.26.2",
     "axios": "^1.5.0",
     "browser-image-compression": "^2.0.2",
+    "firebase": "^12.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.6.0",

@@ -14,17 +14,15 @@ const VerifyEmail = () => {
     const verify = async () => {
       try {
         if (!oobCode) {
-          setMessage('Verification link expired. Resend verification email.');
+          setMessage('Verification link expired, resend email');
           return;
         }
         await applyActionCode(auth, oobCode);
-        setMessage('Email verified successfully — you may now login.');
-        if (auth.currentUser) {
-          await auth.currentUser.reload();
-          if (auth.currentUser.emailVerified) navigate('/login');
-        }
+        // Marked verified on Firebase side. Reload current user if available.
+        try { if (auth.currentUser) await auth.currentUser.reload(); } catch (e) {}
+        setMessage('Email verified, you can now login');
       } catch (e) {
-        setMessage('Verification link expired. Resend verification email.');
+        setMessage('Verification link expired, resend email');
       }
     };
     verify();

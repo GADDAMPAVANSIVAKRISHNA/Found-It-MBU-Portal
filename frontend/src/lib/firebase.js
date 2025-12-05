@@ -17,11 +17,14 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Custom application URL (for email verification redirects)
-const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL;
+// Default to Vite dev server port 5173 if not provided
+const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL || 'http://localhost:5173';
 
 export const actionCodeSettings = {
   url: `${SITE_URL}/verify-email`,
   handleCodeInApp: true,
 };
+
+console.log("🔥 Firebase Action Code Settings:", actionCodeSettings);
 
 export default app;
