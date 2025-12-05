@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { auth } from '../lib/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
+import { apiFetch } from '../utils/api';
+import { auth, actionCodeSettings } from '../lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, fetchSignInMethodsForEmail, signOut } from 'firebase/auth';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,28 +20,14 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(false);
-  const [checking, setChecking] = useState(false);
   const navigate = useNavigate();
 
-  const handlePasswordChange = (e) => {
-    const newPassword = e.target.value;
-    setFormData({ ...formData, password: newPassword });
-    // Check if passwords match
-    if (newPassword && formData.confirmPassword) {
-      setPasswordMatch(newPassword === formData.confirmPassword);
-    } else {
-      setPasswordMatch(false);
-    }
-  };
-
-  const handleConfirmPasswordChange = (e) => {
-    const newConfirmPassword = e.target.value;
-    setFormData({ ...formData, confirmPassword: newConfirmPassword });
-    // Check if passwords match
-    if (formData.password && newConfirmPassword) {
-      setPasswordMatch(formData.password === newConfirmPassword);
-    } else {
-      setPasswordMatch(false);
+  const handleChange = (key) => (e) => {
+    setFormData({ ...formData, [key]: e.target.value });
+    if ((key === 'password' || key === 'confirmPassword')) {
+      const pw = key === 'password' ? e.target.value : formData.password;
+      const cpw = key === 'confirmPassword' ? e.target.value : formData.confirmPassword;
+      setPasswordMatch(pw && cpw && pw === cpw);
     }
   };
 
@@ -48,295 +35,142 @@ const Register = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Basic validations
+    if (!formData.email.endsWith('@mbu.asia')) {
+      setError('Please register with your @mbu.asia email');
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
-
     try {
-      // MBU email validation
-      if (!formData.email.endsWith('@mbu.asia')) {
-        setError('Must use @mbu.asia email');
+      const methods = await fetchSignInMethodsForEmail(auth, formData.email);
+      if (methods && methods.length > 0) {
+        setError('User already registered');
         setLoading(false);
         return;
       }
 
-      // Password validation
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        setLoading(false);
-        return;
-      }
+      const cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      await updateProfile(cred.user, { displayName: formData.name });
+      await sendEmailVerification(cred.user, actionCodeSettings);
+      await signOut(auth);
 
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters');
-        setLoading(false);
-        return;
-      }
-
-      // Create Firebase account
-      const cred = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-
-      // Update profile with name and additional data
-      if (formData.name) {
-        await updateProfile(cred.user, {
-          displayName: formData.name,
-        });
-      }
-
-      // Upsert profile to backend with registration details
-      try {
-        const api = (await import('../utils/api')).default;
-        await api.post('/users/upsert-by-email', {
+      await apiFetch('/api/users/upsert-by-email', {
+        method: 'POST',
+        body: JSON.stringify({
           name: formData.name,
           email: formData.email,
           branch: formData.branch,
           year: formData.year,
           contactNumber: formData.contactNumber,
-          gender: formData.gender
-        });
-      } catch (e) {
-        console.warn('Upsert user failed', e?.message);
-      }
+          gender: formData.gender,
+        }),
+      });
 
-      // Send email verification
-      await sendEmailVerification(cred.user);
-
+      setSuccess('Verification email sent. Please check your inbox.');
       setEmailSent(true);
-      setSuccess('Registration successful! Please check your email to verify your account.');
       setLoading(false);
+      setTimeout(() => {
+        navigate(`/email-sent?email=${encodeURIComponent(formData.email)}`);
+      }, 800);
 
     } catch (err) {
+      console.error('Register error', err);
+      setError(err?.message || 'Registration failed');
       setLoading(false);
-      console.error('Registration error:', err);
-      
-      if (err.code === 'auth/email-already-in-use') {
-        setError('Email already registered. Please login.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email format');
-      } else if (err.code === 'auth/weak-password') {
-        setError('Password is too weak');
-      } else {
-        setError(err.message || 'Registration failed. Please try again.');
-      }
     }
   };
-
-  const handleResendEmail = async () => {
-    try {
-      if (auth.currentUser) {
-        await sendEmailVerification(auth.currentUser);
-        setSuccess('Verification email resent! Please check your inbox.');
-      }
-    } catch (err) {
-      setError('Failed to resend email. Please try again.');
-    }
-  };
-
-  const handleIHaveVerified = async () => {
-    try {
-      setChecking(true);
-      await auth.currentUser.reload();
-      if (auth.currentUser.emailVerified) {
-        navigate('/login');
-      } else {
-        setError('Still not verified or link expired. Please resend the verification email.');
-      }
-    } catch (_) {
-      setError('Unable to check verification. Please try again.');
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded-lg shadow-lg">
-      <div className="flex justify-center mb-4">
-        <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-14 w-auto" />
-      </div>
-      <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Register for Found-It</h2>
-      
-      {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-center">{error}</div>}
-      {success && <div className="bg-green-100 text-green-700 p-3 rounded mb-4 text-center">{success}</div>}
-      
-      {emailSent && (
-        <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded-lg mb-4 text-center">
-          <p className="text-lg mb-2">📧 Verification email sent to {formData.email}</p>
-          <p className="text-gray-600 mb-3">Didn't receive the email?</p>
-          <button 
-            type="button" 
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
-            onClick={handleResendEmail}
-          >
-            Resend Verification Email
-          </button>
-          <div className="mt-4">
-            <button type="button" className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition" onClick={handleIHaveVerified} disabled={checking}>
-              {checking ? 'Checking...' : 'Verification confirmed: Login'}
-            </button>
-          </div>
+    <div className="min-h-screen bg-cover bg-center flex items-center justify-center px-4" style={{ backgroundImage: 'url(/assets/register-bg.jpg)' }}>
+      <div className="w-full max-w-lg mx-auto p-6 bg-white bg-opacity-95 rounded-lg shadow-lg">
+        <div className="flex justify-center mb-4">
+          <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-14 w-auto" />
         </div>
-      )}
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-center text-gray-800">Create Account</h2>
 
-      {!emailSent && (
+        {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-center">{error}</div>}
+        {success && <div className="bg-green-100 text-green-700 p-3 rounded mb-4 text-center">{success}</div>}
+
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold text-gray-700" htmlFor="name">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              id="name"
-              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              placeholder="Enter your full name"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold text-gray-700" htmlFor="email">
-              MBU Email *
-            </label>
-            <input
-              type="email"
-              id="email"
-              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              placeholder="yourname@mbu.asia"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold text-gray-700" htmlFor="password">
-              Password *
-            </label>
-            <input
-              type="password"
-              id="password"
-              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.password}
-              onChange={handlePasswordChange}
-              required
-              placeholder="At least 6 characters"
-            />
-          </div>
-
-          <div className="mb-4 relative">
-            <label className="block mb-2 font-semibold text-gray-700" htmlFor="confirmPassword">
-              Confirm Password *
-            </label>
-            <div className="relative">
-              <input
-                type="password"
-                id="confirmPassword"
-                className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
-                value={formData.confirmPassword}
-                onChange={handleConfirmPasswordChange}
-                required
-                placeholder="Re-enter your password"
-              />
-              {passwordMatch && formData.password && formData.confirmPassword && (
-                <span className="absolute right-3 top-3 text-green-600 text-xl">✔</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700" htmlFor="name">Full Name *</label>
+              <input id="name" type="text" className="w-full px-4 py-2 border rounded" value={formData.name} onChange={handleChange('name')} required placeholder="Your full name" />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700" htmlFor="email">MBU Email *</label>
+              <input id="email" type="email" className="w-full px-4 py-2 border rounded" value={formData.email} onChange={handleChange('email')} required placeholder="you@mbu.asia" />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700" htmlFor="branch">Branch</label>
+              <input id="branch" type="text" className="w-full px-4 py-2 border rounded" value={formData.branch} onChange={handleChange('branch')} placeholder="e.g., CSE" />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700" htmlFor="year">Year</label>
+              <select id="year" className="w-full px-4 py-2 border rounded bg-white" value={formData.year} onChange={handleChange('year')}>
+                <option value="">Select Year</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+              </select>
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700" htmlFor="password">Password *</label>
+              <input id="password" type="password" className="w-full px-4 py-2 border rounded" value={formData.password} onChange={handleChange('password')} required placeholder="At least 6 characters" />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700" htmlFor="confirmPassword">Confirm Password *</label>
+              <input id="confirmPassword" type="password" className="w-full px-4 py-2 border rounded" value={formData.confirmPassword} onChange={handleChange('confirmPassword')} required placeholder="Repeat password" />
+              {formData.confirmPassword && (
+                <p className={`text-sm mt-1 ${formData.password === formData.confirmPassword ? 'text-green-600' : 'text-red-600'}`}>
+                  {formData.password === formData.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
+                </p>
               )}
             </div>
-            {!passwordMatch && formData.password && formData.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">Passwords do not match</p>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold text-gray-700" htmlFor="branch">
-              Branch
-            </label>
-            <input
-              type="text"
-              id="branch"
-              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.branch}
-              onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-              placeholder="e.g., Computer Science"
-            />
-          </div>
-
-          <div className="mb-4">
-            <span className="block mb-2 font-semibold text-gray-700">Gender</span>
-            <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="male"
-                  checked={formData.gender === 'male'}
-                  onChange={(e)=>setFormData({...formData, gender: e.target.value})}
-                />
-                <span>Male</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="female"
-                  checked={formData.gender === 'female'}
-                  onChange={(e)=>setFormData({...formData, gender: e.target.value})}
-                />
-                <span>Female</span>
-              </label>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700" htmlFor="contactNumber">Contact Number</label>
+              <input id="contactNumber" type="tel" className="w-full px-4 py-2 border rounded" value={formData.contactNumber} onChange={handleChange('contactNumber')} placeholder="Optional" />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700">Gender</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="gender" value="male" checked={formData.gender === 'male'} onChange={handleChange('gender')} />
+                  Male
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="gender" value="female" checked={formData.gender === 'female'} onChange={handleChange('gender')} />
+                  Female
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="gender" value="other" checked={formData.gender === 'other'} onChange={handleChange('gender')} />
+                  Other
+                </label>
+              </div>
             </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold text-gray-700" htmlFor="year">
-              Year
-            </label>
-            <select
-              id="year"
-              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-              value={formData.year}
-              onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-            >
-              <option value="">Select Year</option>
-              <option value="1st Year">1st Year</option>
-              <option value="2nd Year">2nd Year</option>
-              <option value="3rd Year">3rd Year</option>
-              <option value="4th Year">4th Year</option>
-            </select>
+          <div className="mt-6">
+            <button type="submit" className="w-full bg-indigo-600 text-white px-6 py-3 rounded hover:bg-indigo-700 transition" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Account'}
+            </button>
           </div>
-
-          <div className="mb-4">
-            <label className="block mb-2 font-semibold text-gray-700" htmlFor="contactNumber">
-              Contact Number
-            </label>
-            <input
-              type="tel"
-              id="contactNumber"
-              className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.contactNumber}
-              onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
-              placeholder="Your phone number"
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold"
-            disabled={loading || (formData.password && formData.confirmPassword && !passwordMatch)}
-          >
-            {loading ? 'Registering...' : 'Register'}
-          </button>
         </form>
-      )}
 
-      <div className="mt-6 text-center">
-        <p className="text-gray-600">
-          Already have an account? <Link to="/login" className="text-blue-600 hover:underline font-semibold">Login here</Link>
-        </p>
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">Already have an account? <Link to="/login" className="text-blue-600 hover:underline font-semibold">Login</Link></p>
+        </div>
       </div>
     </div>
   );

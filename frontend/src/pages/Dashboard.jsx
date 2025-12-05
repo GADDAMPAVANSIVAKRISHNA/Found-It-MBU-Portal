@@ -21,18 +21,20 @@ const Dashboard = () => {
       const user = auth.currentUser;
       if (!user) {
         navigate("/login");
+        setLoading(false);
         return;
       }
 
-      // Fetch user profile from backend
-      const profileRes = await apiFetch("/api/users/me", { method: "GET" });
+      // Fetch dashboard data (stats + profile + items)
+      const res = await apiFetch("/api/dashboard", { method: "GET" });
 
-      if (!profileRes.ok) {
-        console.log(profileRes);
+      if (!res.ok) {
+        console.log(res);
+        setLoading(false);
         return;
       }
 
-      const profile = profileRes.data;
+      const { profile, stats: dashboardStats } = res.data;
 
       setUserData(profile);
       setEditData({
@@ -42,15 +44,10 @@ const Dashboard = () => {
         gender: profile.gender || "",
       });
 
-      // Fetch user's lost/found stats
-      const statsRes = await apiFetch("/api/items/my", { method: "GET" });
-
-      if (statsRes.ok) {
-        setStats({
-          lost: statsRes.data?.lost?.length || 0,
-          found: statsRes.data?.found?.length || 0,
-        });
-      }
+      setStats({
+        lost: dashboardStats.lost || 0,
+        found: dashboardStats.found || 0,
+      });
 
       setLoading(false);
     } catch (error) {

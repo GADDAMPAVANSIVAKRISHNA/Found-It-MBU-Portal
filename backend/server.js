@@ -62,6 +62,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/items", require("./routes/items"));
 app.use("/api/users", require("./routes/users"));
+app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api", require("./routes/reports"));
 app.use("/api/claim", require("./routes/claim"));
 app.use("/api/admin", require("./routes/admin"));

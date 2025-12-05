@@ -1,11 +1,7 @@
 import { createContext, useState, useEffect, useContext } from "react";
-import api from "../utils/api";
-import { 
-  onAuthStateChanged, 
-  signOut, 
-  signInWithEmailAndPassword 
-} from "firebase/auth";
+import { apiFetch } from "../utils/api";
 import { auth } from "../lib/firebase";
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
 
 const AuthContext = createContext();
 
@@ -16,7 +12,9 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Listen for Firebase login state
+  // Make firebase user available globally for apiFetch tokens
+  window.firebaseAuth = auth;
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
@@ -24,42 +22,34 @@ export const AuthProvider = ({ children }) => {
           const idToken = await u.getIdToken();
           setToken(idToken);
 
-          // Get user details from backend
-          const { data: profile } = await api.get("/users/by-email", {
-            params: { email: u.email },
-          });
-
-          setUser({
-            id: profile._id || u.uid,
-            email: u.email,
-            name: u.displayName || profile.name,
-            branch: profile.branch,
-            year: profile.year,
-            contactNumber: profile.contactNumber,
-            gender: profile.gender,
-            role: profile.role || "student",
-          });
+          const res = await apiFetch(`/api/users/by-email?email=${encodeURIComponent(u.email)}`, { method: 'GET' });
+          if (res.ok) {
+            const profile = res.data;
+            setUser({
+              id: profile._id || u.uid,
+              email: u.email,
+              name: u.displayName || profile.name || '',
+              branch: profile.branch || '',
+              year: profile.year || '',
+              contactNumber: profile.contactNumber || '',
+              gender: profile.gender || '',
+              role: profile.role || 'student'
+            });
+          } else {
+            setUser({ id: u.uid, email: u.email, name: u.displayName || '', role: 'student' });
+          }
         } catch (err) {
-          // If backend fails, use Firebase only
-          setUser({
-            id: u.uid,
-            email: u.email,
-            name: u.displayName || "",
-            gender: "",
-            role: "student",
-          });
+          setUser({ id: u.uid, email: u.email, name: u.displayName || '', role: 'student' });
         }
       } else {
         setUser(null);
-        setToken("");
+        setToken('');
       }
       setLoading(false);
     });
-
     return () => unsub();
   }, []);
 
-  // login function used by pages (not required if pages use signInWithEmailAndPassword directly)
   const login = async (email, password) => {
     const result = await signInWithEmailAndPassword(auth, email, password);
     return result.user;
@@ -68,25 +58,33 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     await signOut(auth);
     setUser(null);
-    setToken('');
+    setToken("");
+    localStorage.removeItem('user');
   };
 
   const refreshProfile = async () => {
-    try {
-      const u = auth.currentUser;
-      if (!u) return;
-      const { data: profile } = await api.get('/users/by-email', { params: { email: u.email } });
+    const u = auth.currentUser;
+    if (!u) return;
+
+    const res = await apiFetch(
+      `/api/users/by-email?email=${encodeURIComponent(u.email)}`,
+      { method: "GET" }
+    );
+
+    if (res.ok) {
+      const profile = res.data;
+
       setUser({
         id: profile._id || u.uid,
         email: u.email,
-        name: u.displayName || profile.name,
+        name: u.displayName || profile.fullName,
         branch: profile.branch,
         year: profile.year,
         contactNumber: profile.contactNumber,
         gender: profile.gender,
-        role: profile.role || 'student'
+        role: profile.role || "student",
       });
-    } catch (_) {}
+    }
   };
 
   return (

@@ -26,48 +26,37 @@ const Gallery = () => {
     try {
       setLoading(true);
 
-      // Convert UI status to backend status
-      const statusFormatted =
-        filters.status === "unclaimed"
-          ? "Active"
-          : filters.status === ""
-          ? ""
-          : filters.status.charAt(0).toUpperCase() +
-            filters.status.slice(1);
-
-      const query = new URLSearchParams({
-        category: filters.category,
-        status: statusFormatted,
-        q: filters.q,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
+      // Build query string
+      const params = new URLSearchParams({
         page,
         limit: 20,
-      }).toString();
+      });
+      if (filters.category) params.append('category', filters.category);
+      if (filters.status) params.append('status', filters.status);
+      if (filters.q) params.append('q', filters.q);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
 
-      const res = await apiFetch(`/api/items?${query}`, { method: "GET" });
+      const res = await apiFetch(`/api/items?${params.toString()}`, { method: "GET" });
 
       if (!res.ok) {
         console.log(res);
         toast.error("Failed to load items");
         setItems([]);
+        setLoading(false);
         return;
       }
 
       const data = res.data;
-
-      const itemsArray = Array.isArray(data)
-        ? data
-        : data.items || [];
+      const itemsArray = Array.isArray(data.items) ? data.items : [];
 
       setItems(itemsArray);
       setTotalPages(data.totalPages || 1);
-
+      setLoading(false);
     } catch (error) {
       console.error("Failed to fetch items:", error);
       toast.error("Failed to load items");
       setItems([]);
-    } finally {
       setLoading(false);
     }
   };
@@ -192,18 +181,20 @@ const Gallery = () => {
 
                     <span
                       className={`text-xs px-3 py-1 rounded-full font-semibold ${
-                        (item.status || "").toLowerCase() === "claimed"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : (item.status || "").toLowerCase() === "returned"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
+                        item.itemType === "Found"
+                          ? (item.status || "").toLowerCase() === "claimed"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : (item.status || "").toLowerCase() === "returned"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                          : "bg-orange-100 text-orange-800"
                       }`}
                     >
-                      {item.status
-                        ? item.status.toLowerCase() === "active"
+                      {item.itemType === "Found"
+                        ? item.status?.toLowerCase() === "active"
                           ? "Unclaimed"
-                          : item.status
-                        : "Unclaimed"}
+                          : item.status || "Unclaimed"
+                        : "Lost"}
                     </span>
                   </div>
 

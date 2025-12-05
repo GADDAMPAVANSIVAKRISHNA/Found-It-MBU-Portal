@@ -8,7 +8,7 @@
 
 //     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 //     const user = await User.findById(decoded.userId).select('-password');
-    
+
 //     if (!user) return res.status(401).json({ error: 'User not found' });
 //     if (!user.isVerified) return res.status(401).json({ error: 'Verify email first' });
 
@@ -45,23 +45,39 @@ module.exports = async (req, res, next) => {
 
         let user = await User.findOne({ firebaseUid: decoded.uid });
 
-        // If user doesn't exist, create one
+        // If user doesn't exist by firebaseUid, try to find by email
         if (!user) {
-          user = await User.create({
-            firebaseUid: decoded.uid,
-            name: decoded.name || decoded.email.split('@')[0],
-            email: decoded.email,
-            mbuEmail: decoded.email,
-            password: Math.random().toString(36).slice(-12),
-            branch: 'Not set',
-            year: 'Not set',
-            contactNumber: 'Not set',
-            isVerified: true
-          });
+          user = await User.findOne({ email: decoded.email });
+
+          if (user) {
+            // Link existing user to Firebase UID
+            user.firebaseUid = decoded.uid;
+            // Ensure isVerified is true for Firebase authenticated users if you want to trust Firebase
+            // user.isVerified = true; 
+            await user.save();
+          } else {
+            // Create new user
+            user = await User.create({
+              firebaseUid: decoded.uid,
+              name: decoded.name || decoded.email.split('@')[0],
+              email: decoded.email,
+              mbuEmail: decoded.email,
+              password: Math.random().toString(36).slice(-12),
+              branch: 'Not set',
+              year: 'Not set',
+              contactNumber: 'Not set',
+              isVerified: true
+            });
+          }
         }
 
         req.user = user;
         req.userId = user._id.toString();
+
+        if (!user.isVerified) {
+          return res.status(403).json({ error: 'Verify email first' });
+        }
+
         return next();
       }
     } catch (firebaseError) {

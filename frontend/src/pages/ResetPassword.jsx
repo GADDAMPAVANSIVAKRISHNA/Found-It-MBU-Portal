@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import { apiFetch } from '../utils/api';
 
 const ResetPassword = () => {
   const { token } = useParams();
@@ -14,11 +14,21 @@ const ResetPassword = () => {
     setError('');
     setSuccess('');
     try {
-      await api.post(`/auth/reset-password/${token}`, { password });
+      const res = await apiFetch(`/auth/reset-password/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!res.ok) {
+        setError(res.data?.error || 'Reset failed');
+        return;
+      }
+
       setSuccess('Password reset successful. You can now login.');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
-      setError(err.response?.data?.error || 'Reset failed');
+      setError(err?.message || 'Reset failed');
     }
   };
 

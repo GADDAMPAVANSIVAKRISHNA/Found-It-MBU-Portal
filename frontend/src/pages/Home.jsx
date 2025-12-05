@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const Home = () => {
   const { user } = useAuth();
-  const [animating, setAnimating] = useState(true);
   return (
     <div className="max-w-7xl mx-auto px-4 py-16">
       <div className="text-center">
@@ -21,20 +19,10 @@ const Home = () => {
         {/* Action buttons shown only when logged in */}
         {user && (
           <div className="flex justify-center space-x-4">
-            <Link 
-              to="/report-lost" 
-              onMouseEnter={() => setAnimating(false)}
-              onMouseLeave={() => setAnimating(true)}
-              className={`px-8 py-3 rounded-full text-lg font-bold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-300 ${animating ? 'animate-pulse' : ''}`}
-            >
+            <Link to="/report-lost" className="px-8 py-3 rounded-full text-lg font-bold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-300 animate-pulse">
               Report Lost Item
             </Link>
-            <Link 
-              to="/report-found" 
-              onMouseEnter={() => setAnimating(false)}
-              onMouseLeave={() => setAnimating(true)}
-              className={`px-8 py-3 rounded-full text-lg font-bold bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 focus:ring-4 focus:ring-purple-300 ${animating ? 'animate-pulse' : ''}`}
-            >
+            <Link to="/report-found" className="px-8 py-3 rounded-full text-lg font-bold bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 focus:ring-4 focus:ring-purple-300 animate-pulse">
               Report Found Item
             </Link>
           </div>

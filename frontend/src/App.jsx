@@ -19,6 +19,7 @@ import ReportFound from "./pages/ReportFound";
 import Gallery from "./pages/Gallery";
 import ItemDetails from "./pages/ItemDetails";
 import VerifyEmail from "./pages/VerifyEmail";
+import EmailSent from "./pages/EmailSent";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -45,7 +46,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/verify-email/:token" element={<VerifyEmail />} />
+              <Route path="/email-sent" element={<EmailSent />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/gallery" element={<Gallery />} />

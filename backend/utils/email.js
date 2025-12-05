@@ -1,15 +1,29 @@
 const nodemailer = require('nodemailer');
 
+const defaultHost = 'smtp.office365.com';
+const defaultPort = 587;
+const defaultSecure = false;
+
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE, // e.g. 'gmail'
-  host: process.env.SMTP_HOST, // e.g. 'smtp.office365.com'
-  port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined,
-  secure: process.env.SMTP_SECURE === 'true',
+  service: process.env.EMAIL_SERVICE || undefined,
+  host: process.env.SMTP_HOST || defaultHost,
+  port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : defaultPort,
+  secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : defaultSecure,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   }
 });
+
+async function isEmailConfigured() {
+  try {
+    await transporter.verify();
+    return true;
+  } catch (e) {
+    console.warn('⚠️ Email not fully configured:', e.message);
+    return false;
+  }
+}
 
 const sendVerificationEmail = async (email, token) => {
   const url = `${process.env.CLIENT_URL}/verify-email/${token}`;
@@ -43,6 +57,7 @@ const sendVerificationOtpEmail = async (email, otp) => {
 };
 
 module.exports.sendVerificationOtpEmail = sendVerificationOtpEmail;
+module.exports.isEmailConfigured = isEmailConfigured;
 
 const sendItemReportEmail = async (email, item) => {
   await transporter.sendMail({

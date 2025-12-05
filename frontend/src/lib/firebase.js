@@ -13,4 +13,17 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+// Ensure production-like behavior for app verification (no test bypass)
+try {
+  auth.settings.appVerificationDisabledForTesting = false;
+} catch (e) {
+  console.warn("Failed to set appVerificationDisabledForTesting:", e);
+}
+
+const SITE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PUBLIC_SITE_URL) || window.location.origin;
+
+export const actionCodeSettings = {
+  url: `${SITE_URL}/verify-email`,
+  handleCodeInApp: true
+};
 export default app;

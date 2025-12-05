@@ -3,12 +3,61 @@ const router = express.Router();
 const User = require('../models/user');
 const auth = require('../middleware/auth');
 
-// Get user profile
+// Get current user profile (protected)
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('-password -verificationToken -resetPasswordToken');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      branch: user.branch,
+      year: user.year,
+      contactNumber: user.contactNumber,
+      gender: user.gender,
+      role: user.isAdmin ? 'admin' : 'student'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user profile by id
 router.get('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password -verificationToken -resetPasswordToken');
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update current user profile (protected)
+router.put('/me', auth, async (req, res) => {
+  try {
+    const { name, branch, year, contactNumber, gender } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (branch !== undefined) updates.branch = branch;
+    if (year !== undefined) updates.year = year;
+    if (contactNumber !== undefined) updates.contactNumber = contactNumber;
+    if (gender !== undefined) updates.gender = gender;
+
+    const user = await User.findByIdAndUpdate(req.userId, updates, { new: true }).select('-password -verificationToken -resetPasswordToken');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      branch: user.branch,
+      year: user.year,
+      contactNumber: user.contactNumber,
+      gender: user.gender,
+      role: user.isAdmin ? 'admin' : 'student'
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import api from '../utils/api';
+import { apiFetch } from '../utils/api';
 
 const AdminDashboard = () => {
   const [tab, setTab] = useState('claims');
@@ -9,27 +9,39 @@ const AdminDashboard = () => {
 
   const load = async () => {
     const [lostRes, foundRes, claimsRes] = await Promise.all([
-      api.get('/admin/items/lost'),
-      api.get('/admin/items/found'),
-      api.get('/admin/claims')
+      apiFetch('/admin/items/lost', { method: 'GET' }),
+      apiFetch('/admin/items/found', { method: 'GET' }),
+      apiFetch('/admin/claims', { method: 'GET' }),
     ]);
-    setLost(lostRes.data.items || []);
-    setFound(foundRes.data.items || []);
-    setClaims(claimsRes.data.claims || []);
+    setLost(lostRes.data?.items || []);
+    setFound(foundRes.data?.items || []);
+    setClaims(claimsRes.data?.claims || []);
   };
 
   useEffect(() => { load(); }, []);
 
   const updateItemStatus = async (collection, id, status) => {
-    await api.patch(`/admin/item/${id}/status`, { collection, status });
+    await apiFetch(`/admin/item/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ collection, status }),
+    });
     await load();
   };
   const updateApproval = async (collection, id, approvalStatus) => {
-    await api.patch(`/admin/item/${id}/approval`, { collection, approvalStatus });
+    await apiFetch(`/admin/item/${id}/approval`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ collection, approvalStatus }),
+    });
     await load();
   };
   const updateClaimStatus = async (id, status) => {
-    await api.patch(`/admin/claim/${id}/status`, { status });
+    await apiFetch(`/admin/claim/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
     await load();
   };
 

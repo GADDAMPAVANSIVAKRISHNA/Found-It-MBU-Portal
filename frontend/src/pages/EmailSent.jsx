@@ -1,34 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, actionCodeSettings } from '../lib/firebase';
-import { applyActionCode, sendEmailVerification } from 'firebase/auth';
+import { sendEmailVerification } from 'firebase/auth';
 
-const VerifyEmail = () => {
+const EmailSent = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const oobCode = params.get('oobCode') || '';
-  const [message, setMessage] = useState('Verifying your email...');
+  const email = params.get('email') || '';
   const [resending, setResending] = useState(false);
-
-  useEffect(() => {
-    const verify = async () => {
-      try {
-        if (!oobCode) {
-          setMessage('Verification link expired. Resend verification email.');
-          return;
-        }
-        await applyActionCode(auth, oobCode);
-        setMessage('Email verified successfully — you may now login.');
-        if (auth.currentUser) {
-          await auth.currentUser.reload();
-          if (auth.currentUser.emailVerified) navigate('/login');
-        }
-      } catch (e) {
-        setMessage('Verification link expired. Resend verification email.');
-      }
-    };
-    verify();
-  }, [oobCode, navigate]);
+  const [message, setMessage] = useState('Verification email sent. Please check your inbox.');
 
   const handleResend = async () => {
     try {
@@ -37,7 +17,10 @@ const VerifyEmail = () => {
         await sendEmailVerification(auth.currentUser, actionCodeSettings);
         setMessage('Verification email resent. Please check your inbox.');
       } else {
-        setMessage('Cannot resend: no user session. Please register again.');
+        // Since we sign out after register, this is the likely path.
+        // We cannot resend without a session.
+        setMessage('Please log in to resend the verification email.');
+        setTimeout(() => navigate('/login'), 2000);
       }
     } catch (e) {
       setMessage('Failed to resend verification email.');
@@ -52,8 +35,11 @@ const VerifyEmail = () => {
         <div className="flex justify-center mb-4">
           <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-12 w-auto" />
         </div>
-        <h2 className="text-2xl font-bold mb-3 text-gray-800">Verify Email</h2>
+        <h2 className="text-2xl font-bold mb-3 text-gray-800">Email Sent</h2>
         <p className="text-gray-600 mb-6">{message}</p>
+        {email && (
+          <p className="text-sm text-gray-500 mb-6">Registered email: <span className="font-semibold">{email}</span></p>
+        )}
         <div className="flex flex-col gap-3">
           <button
             type="button"
@@ -61,7 +47,7 @@ const VerifyEmail = () => {
             disabled={resending}
             className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition"
           >
-            {resending ? 'Resending...' : 'Resend Verification Email'}
+            {resending ? 'Resending...' : 'Resend verification email'}
           </button>
           <button
             type="button"
@@ -76,4 +62,4 @@ const VerifyEmail = () => {
   );
 };
 
-export default VerifyEmail;
+export default EmailSent;
