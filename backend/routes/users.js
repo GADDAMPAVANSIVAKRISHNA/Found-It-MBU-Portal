@@ -47,7 +47,7 @@ router.put('/me', auth, async (req, res) => {
 
     const user = await User.findByIdAndUpdate(req.userId, updates, { new: true }).select('-password -verificationToken -resetPasswordToken');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    
+
     res.json({
       _id: user._id,
       name: user.name,
@@ -115,17 +115,74 @@ router.post('/upsert-by-email', async (req, res) => {
       user.isVerified = true;
       await user.save();
     }
-    res.json({ success: true, user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      branch: user.branch,
-      year: user.year,
-      contactNumber: user.contactNumber,
-      gender: user.gender,
-      role: user.role
-    }});
+    res.json({
+      success: true, user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        branch: user.branch,
+        year: user.year,
+        contactNumber: user.contactNumber,
+        gender: user.gender,
+        role: user.role
+      }
+    });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Register user (alias for upsert-by-email to match user request)
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, branch, year, contactNumber, gender } = req.body;
+
+    // Validate email
+    if (!email || !/@mbu\.asia$/.test(email)) {
+      return res.status(400).json({ error: 'Valid @mbu.asia email required' });
+    }
+
+    // Check if user exists
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Create new user
+      user = new User({
+        name: name || email.split('@')[0],
+        email,
+        mbuEmail: email,
+        password: Math.random().toString(36).slice(2), // Random password since we use Firebase
+        branch: branch || 'NA',
+        year: year || 'NA',
+        contactNumber: contactNumber || '',
+        gender: gender || '',
+        role: 'student',
+        isVerified: true
+      });
+      await user.save();
+    } else {
+      // User exists - we can optionally update or just return success
+      // User requested: "If the user already exists in MongoDB, do not create again — instead continue normally."
+      // We will just return the existing user without updating, to be safe, or maybe update fields if they are empty?
+      // Let's stick to the requested behavior: "continue normally".
+      // We won't update the user if they exist, just return success.
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        branch: user.branch,
+        year: user.year,
+        contactNumber: user.contactNumber,
+        gender: user.gender,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error("Register API Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
