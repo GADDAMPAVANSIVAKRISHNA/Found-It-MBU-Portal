@@ -107,103 +107,105 @@ const ItemDetails = () => {
     }
   };
 
-  if (!item) return <div className="text-center py-16">Loading...</div>;
+  if (!item) return <div className="text-center py-16 text-xs sm:text-sm lg:text-base">Loading...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <div className="grid md:grid-cols-2 gap-8">
+    <div className="w-screen overflow-x-hidden max-w-full mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Item Image */}
           <div>
             {item.imageUrl ? (
               <img
                 src={item.imageUrl}
-                className="w-full h-96 object-cover rounded-lg"
+                className="w-full h-64 sm:h-72 lg:h-96 object-cover rounded-lg"
               />
             ) : (
-              <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-gray-500 text-xl">No Image</span>
+              <div className="w-full h-64 sm:h-72 lg:h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-gray-500 text-sm sm:text-base lg:text-xl">No Image</span>
               </div>
             )}
           </div>
 
           {/* Item Info */}
-          <div>
-            <h1 className="text-3xl font-bold mb-4">{item.title}</h1>
+          <div className="flex flex-col justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 break-words">{item.title}</h1>
 
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Type:</span>
-                <span
-                  className={`px-3 py-1 rounded-full ${
-                    item.type === "Lost"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {item.type}
-                </span>
+              <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+                <div className="flex justify-between text-xs sm:text-sm lg:text-base">
+                  <span className="text-gray-600">Type:</span>
+                  <span
+                    className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm ${
+                      item.type === "Lost"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-green-100 text-green-700"
+                    }`}
+                  >
+                    {item.type}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-xs sm:text-sm lg:text-base">
+                  <span className="text-gray-600">Status:</span>
+                  <span
+                    className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm ${
+                      item.status === "Active"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {item.status}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-xs sm:text-sm lg:text-base">
+                  <span className="text-gray-600">Category:</span>
+                  <strong className="break-words text-right">{item.category}</strong>
+                </div>
+
+                <div className="flex justify-between text-xs sm:text-sm lg:text-base">
+                  <span className="text-gray-600">Subcategory:</span>
+                  <strong className="break-words text-right">{item.subcategory || "—"}</strong>
+                </div>
+
+                <div className="flex justify-between text-xs sm:text-sm lg:text-base">
+                  <span className="text-gray-600">Location:</span>
+                  <strong className="break-words text-right">{item.location}</strong>
+                </div>
+
+                <div className="flex justify-between text-xs sm:text-sm lg:text-base">
+                  <span className="text-gray-600">Date:</span>
+                  <strong>
+                    {new Date(item.date).toLocaleDateString("en-IN")}
+                  </strong>
+                </div>
               </div>
 
-              <div className="flex justify-between">
-                <span className="text-gray-600">Status:</span>
-                <span
-                  className={`px-3 py-1 rounded-full ${
-                    item.status === "Active"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {item.status}
-                </span>
+              <div className="mb-4 sm:mb-6">
+                <h3 className="font-bold mb-2 text-sm sm:text-base lg:text-lg">Description:</h3>
+                <p className="text-gray-700 text-xs sm:text-sm lg:text-base break-words">{item.description}</p>
               </div>
 
-              <div className="flex justify-between">
-                <span className="text-gray-600">Category:</span>
-                <strong>{item.category}</strong>
+              {/* Contact */}
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-bold mb-2 text-sm sm:text-base lg:text-lg">Contact:</h3>
+                <p className="text-xs sm:text-sm lg:text-base">
+                  <strong>Name:</strong> <span className="break-all">{item.userName || ""}</span>
+                </p>
+                <p className="text-xs sm:text-sm lg:text-base">
+                  <strong>Phone:</strong> <span className="break-all">{item.userContact || ""}</span>
+                </p>
+                <p className="text-xs sm:text-sm lg:text-base">
+                  <strong>Email:</strong> <span className="break-all">{item.userEmail || ""}</span>
+                </p>
               </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subcategory:</span>
-                <strong>{item.subcategory || "—"}</strong>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Location:</span>
-                <strong>{item.location}</strong>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Date:</span>
-                <strong>
-                  {new Date(item.date).toLocaleDateString("en-IN")}
-                </strong>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h3 className="font-bold mb-2">Description:</h3>
-              <p className="text-gray-700">{item.description}</p>
-            </div>
-
-            {/* Contact */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-bold mb-2">Contact:</h3>
-              <p>
-                <strong>Name:</strong> {item.userName || ""}
-              </p>
-              <p>
-                <strong>Phone:</strong> {item.userContact || ""}
-              </p>
-              <p>
-                <strong>Email:</strong> {item.userEmail || ""}
-              </p>
             </div>
 
             {item.type === "Found" && item.status === "Active" && (
               <button
                 onClick={() => setShowClaim(true)}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold text-lg hover:bg-blue-700"
+                className="w-full bg-blue-600 text-white py-2.5 sm:py-3 lg:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-blue-700 transition"
               >
                 Claim Item
               </button>
@@ -214,19 +216,19 @@ const ItemDetails = () => {
 
       {/* CLAIM MODAL */}
       {showClaim && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Claim Item</h3>
-              <button onClick={() => setShowClaim(false)} className="text-gray-600">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-xl w-full max-w-sm sm:max-w-md lg:max-w-lg p-4 sm:p-6 my-auto">
+            <div className="flex justify-between items-center mb-3 sm:mb-4">
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-bold">Claim Item</h3>
+              <button onClick={() => setShowClaim(false)} className="text-gray-600 text-xl">
                 ✕
               </button>
             </div>
 
             <form onSubmit={submitClaim}>
-              <div className="mb-3 grid md:grid-cols-2 gap-3">
+              <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm mb-1">Name</label>
+                  <label className="block text-xs sm:text-sm font-semibold mb-1">Name</label>
                   <input
                     className="w-full border rounded-lg px-3 py-2"
                     value={userInfo.name}
@@ -234,9 +236,9 @@ const ItemDetails = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm mb-1">Email</label>
+                  <label className="block text-xs sm:text-sm font-semibold mb-1">Email</label>
                   <input
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border rounded-lg px-3 py-2 text-xs sm:text-sm"
                     value={userInfo.email}
                     readOnly
                   />
@@ -244,18 +246,18 @@ const ItemDetails = () => {
               </div>
 
               <div className="mb-3">
-                <label className="block text-sm mb-1">Contact Number</label>
+                <label className="block text-xs sm:text-sm font-semibold mb-1">Contact Number</label>
                 <input
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 text-xs sm:text-sm"
                   value={userInfo.contactNumber}
                   readOnly
                 />
               </div>
 
               <div className="mb-3">
-                <label className="block text-sm mb-1">Student ID</label>
+                <label className="block text-xs sm:text-sm font-semibold mb-1">Student ID</label>
                 <input
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 text-xs sm:text-sm"
                   value={claimForm.studentId}
                   onChange={(e) =>
                     setClaimForm({
@@ -268,10 +270,10 @@ const ItemDetails = () => {
               </div>
 
               <div className="mb-3">
-                <label className="block text-sm mb-1">Proof of Ownership</label>
+                <label className="block text-xs sm:text-sm font-semibold mb-1">Proof of Ownership</label>
                 <textarea
-                  className="w-full border rounded-lg px-3 py-2"
-                  rows={4}
+                  className="w-full border rounded-lg px-3 py-2 text-xs sm:text-sm"
+                  rows={3}
                   value={claimForm.proofDescription}
                   onChange={(e) =>
                     setClaimForm({
@@ -283,11 +285,12 @@ const ItemDetails = () => {
                 />
               </div>
 
-              <div className="mb-4">
-                <label className="block text-sm mb-1">Optional Proof Image</label>
+              <div className="mb-3">
+                <label className="block text-xs sm:text-sm font-semibold mb-1">Optional Proof Image</label>
                 <input
                   type="file"
                   accept="image/*"
+                  className="w-full text-xs sm:text-sm"
                   onChange={(e) =>
                     setClaimForm({
                       ...claimForm,
@@ -299,7 +302,7 @@ const ItemDetails = () => {
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold"
+                className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-sm sm:text-base"
               >
                 Submit Claim
               </button>

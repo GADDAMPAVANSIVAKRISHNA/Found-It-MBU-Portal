@@ -47,11 +47,14 @@
 
 
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const NotificationsBell = () => {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState([]);
+  const location = useLocation();
+  const containerRef = useRef(null);
 
   // Disable notifications until backend endpoints are created
   useEffect(() => {
@@ -59,8 +62,22 @@ const NotificationsBell = () => {
     setNotes([]); // always empty for now
   }, []);
 
+  // Close popup when route changes
+  useEffect(() => { setOpen(false); }, [location.pathname]);
+
+  // Close when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button aria-label="Notifications" className="relative" onClick={() => setOpen(!open)}>
         <span>🔔</span>
         {notes.length > 0 && (

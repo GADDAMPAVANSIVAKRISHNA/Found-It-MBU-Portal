@@ -16,6 +16,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ReportLost from "./pages/ReportLost";
 import ReportFound from "./pages/ReportFound";
+import ReportForm from "./pages/ReportForm";
 import Gallery from "./pages/Gallery";
 import ItemDetails from "./pages/ItemDetails";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -59,6 +60,15 @@ function App() {
                 element={
                   <PrivateRoute>
                     <Dashboard />
+                  </PrivateRoute>
+                }
+              />
+
+              <Route
+                path="/report"
+                element={
+                  <PrivateRoute>
+                    <ReportForm />
                   </PrivateRoute>
                 }
               />

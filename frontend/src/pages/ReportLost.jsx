@@ -111,8 +111,7 @@ const ReportLost = () => {
         return toast.error(res?.data?.message || 'Error reporting lost item');
       }
 
-      toast.success('Lost item reported successfully!');
-      navigate('/dashboard');
+      toast.success('Lost item reported successfully!', { position: 'top-center' });
 
     } catch (error) {
       console.log(error);
@@ -123,15 +122,15 @@ const ReportLost = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+    <div className="w-screen overflow-x-hidden min-h-screen py-4 sm:py-6 lg:py-8 px-3 sm:px-4 md:px-6 lg:px-8">
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">
 
           {/* Header */}
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">Report Lost Item</h1>
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-              <p className="text-gray-700 text-sm">
+          <div className="mb-6 sm:mb-8 text-center">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">Report Lost Item</h1>
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 rounded">
+              <p className="text-gray-700 text-xs sm:text-sm">
                 <span className="font-semibold">📝 Use this form to report items you have lost on campus.</span><br />
                 <span className="text-gray-600">The details you provide help others identify and return your item quickly.</span>
               </p>
@@ -139,42 +138,42 @@ const ReportLost = () => {
           </div>
 
           {/* FORM */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Item Title *</label>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Item Title *</label>
               <input
                 type="text"
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
                 placeholder="e.g., Silver Laptop, Blue Backpack"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition text-xs sm:text-sm"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Detailed Description *</label>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Detailed Description *</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                rows="4"
+                rows="3"
                 placeholder="Describe distinguishing features, color, brand, condition, etc."
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Category *</label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -184,37 +183,37 @@ const ReportLost = () => {
 
             {/* Approx Location */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Approximate Location *</label>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Approximate Location *</label>
               <input
                 type="text"
                 name="approximateLocation"
                 value={formData.approximateLocation}
                 onChange={handleChange}
                 placeholder="Library, Cafeteria, Classroom, etc."
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
               />
             </div>
 
             {/* Date + Time */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Date Lost *</label>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Date Lost *</label>
                 <input
                   type="date"
                   name="dateLost"
                   value={formData.dateLost}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Approximate Time *</label>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Approximate Time *</label>
                 <select
                   name="approximateTime"
                   value={formData.approximateTime}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
                 >
                   <option value="">Select time range</option>
                   {timeOptions.map(time => (
@@ -226,26 +225,26 @@ const ReportLost = () => {
 
             {/* Image Upload */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Image (Optional)</label>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Upload Image (Optional)</label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg"
+                className="w-full px-3 sm:px-4 py-2 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
               />
 
               {imagePreview && (
-                <div className="mt-4 flex justify-center">
-                  <div className="relative">
+                <div className="mt-3 sm:mt-4 flex justify-center">
+                  <div className="relative w-full max-w-xs sm:max-w-sm">
                     <img
                       src={imagePreview}
                       alt="Preview"
-                      className="max-h-64 max-w-sm rounded-lg shadow-md"
+                      className="w-full h-auto object-contain rounded-lg shadow-md"
                     />
                     <button
                       type="button"
                       onClick={() => { setImagePreview(null); setImageFile(null); }}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2"
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 sm:p-2 text-xs sm:text-sm"
                     >
                       ✕
                     </button>
@@ -255,31 +254,31 @@ const ReportLost = () => {
             </div>
 
             {/* Contact Info */}
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Contact Information</h3>
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-gray-50 p-3 sm:p-4 lg:p-6 rounded-lg">
+              <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Contact Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Mobile</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Mobile</label>
                   <input
                     type="tel"
                     name="mobile"
                     value={formData.mobile}
                     onChange={handleChange}
                     placeholder="10-digit mobile number"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Email</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="your.email@mbu.edu.in"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
                   />
                 </div>
 
@@ -287,9 +286,9 @@ const ReportLost = () => {
             </div>
 
             {/* Where is the item kept? */}
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Where is the item kept? *</label>
-              <select name="whereKept" value={formData.whereKept} onChange={handleChange} className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg">
+            <div className="bg-gray-50 p-3 sm:p-4 lg:p-6 rounded-lg">
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Where is the item kept? *</label>
+              <select name="whereKept" value={formData.whereKept} onChange={handleChange} className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm">
                 <option value="With me">With me</option>
                 <option value="University Office">University Office</option>
                 <option value="Security Check 1st gate">Security Check 1st gate</option>
@@ -298,13 +297,13 @@ const ReportLost = () => {
               </select>
 
               {formData.whereKept === 'Other' && (
-                <div className="mt-3">
+                <div className="mt-2 sm:mt-3">
                   <input
                     type="text"
                     placeholder="Please specify where the item is kept"
                     value={formData.otherLocation || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, otherLocation: e.target.value }))}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition text-xs sm:text-sm"
                   />
                 </div>
               )}
@@ -314,7 +313,7 @@ const ReportLost = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-lg shadow-md text-xs sm:text-sm lg:text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Reporting...' : 'Report Lost Item'}
             </button>

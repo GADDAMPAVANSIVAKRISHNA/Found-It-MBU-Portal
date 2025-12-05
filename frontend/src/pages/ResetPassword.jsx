@@ -33,15 +33,17 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded-xl shadow-lg">
-      <h2 className="text-2xl font-bold mb-6">Reset Password</h2>
-      {success && <div className="bg-green-100 text-green-700 p-3 rounded mb-4">{success}</div>}
-      {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
-      <form onSubmit={handleSubmit}>
-        <label className="block mb-2">New Password</label>
-        <input type="password" className="w-full px-4 py-2 border rounded-lg mb-4" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <button type="submit" className="w-full bg-primary text-white py-2 rounded-lg font-semibold">Reset Password</button>
-      </form>
+    <div className="w-screen overflow-x-hidden min-h-screen py-8 sm:py-12 lg:py-16 px-3 sm:px-4 md:px-6 lg:px-8 flex items-center justify-center">
+      <div className="w-full max-w-sm sm:max-w-md p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-lg">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">Reset Password</h2>
+        {success && <div className="bg-green-100 text-green-700 p-2 sm:p-3 rounded mb-3 sm:mb-4 text-xs sm:text-sm">{success}</div>}
+        {error && <div className="bg-red-100 text-red-700 p-2 sm:p-3 rounded mb-3 sm:mb-4 text-xs sm:text-sm">{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <label className="block mb-2 text-xs sm:text-sm font-semibold">New Password</label>
+          <input type="password" className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition mb-4 sm:mb-6 text-xs sm:text-sm" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <button type="submit" className="w-full bg-blue-600 text-white py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-blue-700 transition text-xs sm:text-sm lg:text-base">Reset Password</button>
+        </form>
+      </div>
     </div>
   );
 };

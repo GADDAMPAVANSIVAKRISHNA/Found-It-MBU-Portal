@@ -188,3 +188,18 @@ body::before{
 .muted{color:var(--muted)}
 .small{font-size:13px}
 .link{color:var(--accent);text-decoration:none}
+@keyframes pillPulse { 0%{transform:translateY(0)} 50%{transform:translateY(-2px)} 100%{transform:translateY(0)} }
+.nav-chip{padding:8px 12px;border-radius:10px}
+.nav-chip:hover{background:#f3f4f6}
+.hello-pill{padding:8px 12px;border-radius:999px;background:#f3f4f6;color:#374151;font-weight:600}
+.compact-form input,.compact-form select,.compact-form textarea{padding:10px}
+.compact-form label{margin-bottom:6px}
+/* Report button subtle float */
+@keyframes floaty {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+.btn-float {
+  animation: floaty 2.8s ease-in-out infinite;
+}

@@ -130,33 +130,33 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cover bg-center flex items-center justify-center px-4" style={{ backgroundImage: 'url(/assets/register-bg.jpg)' }}>
-      <div className="w-full max-w-lg mx-auto p-6 bg-white bg-opacity-95 rounded-lg shadow-lg">
-        <div className="flex justify-center mb-4">
-          <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-14 w-auto" />
+    <div className="min-h-screen w-screen overflow-x-hidden bg-cover bg-center flex items-center justify-center px-3 sm:px-4 md:px-6 py-4" style={{ backgroundImage: 'url(/assets/register-bg.jpg)' }}>
+      <div className="w-full max-w-sm sm:max-w-lg mx-auto p-4 sm:p-6 lg:p-8 bg-white bg-opacity-95 rounded-lg lg:rounded-xl shadow-lg">
+        <div className="flex justify-center mb-3 sm:mb-4">
+          <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-10 sm:h-12 lg:h-14 w-auto" />
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-center text-gray-800">Create Account</h2>
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 text-center text-gray-800">Create Account</h2>
 
-        {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-center">{error}</div>}
-        {success && <div className="bg-green-100 text-green-700 p-3 rounded mb-4 text-center">{success}</div>}
+        {error && <div className="bg-red-100 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded-lg mb-3 sm:mb-4 text-center text-xs sm:text-sm">{error}</div>}
+        {success && <div className="bg-green-100 text-green-700 px-3 sm:px-4 py-2 sm:py-3 rounded-lg mb-3 sm:mb-4 text-center text-xs sm:text-sm">{success}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block mb-2 font-semibold text-gray-700" htmlFor="name">Full Name *</label>
-              <input id="name" type="text" className="w-full px-4 py-2 border rounded" value={formData.name} onChange={handleChange('name')} required placeholder="Your full name" />
+              <label className="block mb-2 font-semibold text-gray-700 text-xs sm:text-sm" htmlFor="name">Full Name *</label>
+              <input id="name" type="text" className="w-full px-3 sm:px-4 py-2 border rounded-lg text-sm" value={formData.name} onChange={handleChange('name')} required placeholder="Your full name" />
             </div>
             <div>
-              <label className="block mb-2 font-semibold text-gray-700" htmlFor="email">MBU Email *</label>
-              <input id="email" type="email" className="w-full px-4 py-2 border rounded" value={formData.email} onChange={handleChange('email')} required placeholder="you@mbu.asia" />
+              <label className="block mb-2 font-semibold text-gray-700 text-xs sm:text-sm" htmlFor="email">MBU Email *</label>
+              <input id="email" type="email" className="w-full px-3 sm:px-4 py-2 border rounded-lg text-sm" value={formData.email} onChange={handleChange('email')} required placeholder="you@mbu.asia" />
             </div>
             <div>
-              <label className="block mb-2 font-semibold text-gray-700" htmlFor="branch">Branch</label>
-              <input id="branch" type="text" className="w-full px-4 py-2 border rounded" value={formData.branch} onChange={handleChange('branch')} placeholder="e.g., CSE" />
+              <label className="block mb-2 font-semibold text-gray-700 text-xs sm:text-sm" htmlFor="branch">Branch</label>
+              <input id="branch" type="text" className="w-full px-3 sm:px-4 py-2 border rounded-lg text-sm" value={formData.branch} onChange={handleChange('branch')} placeholder="e.g., CSE" />
             </div>
             <div>
-              <label className="block mb-2 font-semibold text-gray-700" htmlFor="year">Year</label>
-              <select id="year" className="w-full px-4 py-2 border rounded bg-white" value={formData.year} onChange={handleChange('year')}>
+              <label className="block mb-2 font-semibold text-gray-700 text-xs sm:text-sm" htmlFor="year">Year</label>
+              <select id="year" className="w-full px-3 sm:px-4 py-2 border rounded-lg bg-white text-sm" value={formData.year} onChange={handleChange('year')}>
                 <option value="">Select Year</option>
                 <option value="1st Year">1st Year</option>
                 <option value="2nd Year">2nd Year</option>
@@ -165,30 +165,39 @@ const Register = () => {
               </select>
             </div>
             <div>
-              <label className="block mb-2 font-semibold text-gray-700" htmlFor="password">Password *</label>
-              <input id="password" type="password" className="w-full px-4 py-2 border rounded" value={formData.password} onChange={handleChange('password')} required placeholder="At least 6 characters" />
+              <label className="block mb-2 font-semibold text-gray-700 text-xs sm:text-sm" htmlFor="password">Password *</label>
+              <input id="password" type="password" className="w-full px-3 sm:px-4 py-2 border rounded-lg text-sm" value={formData.password} onChange={handleChange('password')} required placeholder="At least 6 characters" />
             </div>
             <div>
-              <label className="block mb-2 font-semibold text-gray-700" htmlFor="confirmPassword">Confirm Password *</label>
-              <input id="confirmPassword" type="password" className="w-full px-4 py-2 border rounded" value={formData.confirmPassword} onChange={handleChange('confirmPassword')} required placeholder="Repeat password" />
-              {passwordMatch && <p className="text-sm text-green-600 mt-1">Passwords match</p>}
+              <label className="block mb-2 font-semibold text-gray-700 text-xs sm:text-sm" htmlFor="confirmPassword">Confirm Password *</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                className={`w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 text-sm ${formData.confirmPassword ? (passwordMatch ? 'border-green-500 focus:ring-green-500' : 'border-red-500 focus:ring-red-500') : ''}`}
+                value={formData.confirmPassword}
+                onChange={handleChange('confirmPassword')}
+                required
+                placeholder="Repeat password"
+              />
+              {!passwordMatch && formData.confirmPassword && <p className="text-xs text-red-600 mt-1">Passwords do not match</p>}
+              {passwordMatch && formData.confirmPassword && <p className="text-xs text-green-600 mt-1">Passwords match</p>}
             </div>
             <div>
-              <label className="block mb-2 font-semibold text-gray-700" htmlFor="contactNumber">Contact Number</label>
-              <input id="contactNumber" type="tel" className="w-full px-4 py-2 border rounded" value={formData.contactNumber} onChange={handleChange('contactNumber')} placeholder="Optional" />
+              <label className="block mb-2 font-semibold text-gray-700 text-xs sm:text-sm" htmlFor="contactNumber">Contact Number</label>
+              <input id="contactNumber" type="tel" className="w-full px-3 sm:px-4 py-2 border rounded-lg text-sm" value={formData.contactNumber} onChange={handleChange('contactNumber')} placeholder="Optional" />
             </div>
             <div>
-              <label className="block mb-2 font-semibold text-gray-700">Gender</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
+              <label className="block mb-2 font-semibold text-gray-700 text-xs sm:text-sm">Gender</label>
+              <div className="flex gap-2 sm:gap-4 flex-wrap">
+                <label className="flex items-center gap-1 sm:gap-2 text-sm">
                   <input type="radio" name="gender" value="male" checked={formData.gender === 'male'} onChange={handleChange('gender')} />
                   Male
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-1 sm:gap-2 text-sm">
                   <input type="radio" name="gender" value="female" checked={formData.gender === 'female'} onChange={handleChange('gender')} />
                   Female
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-1 sm:gap-2 text-sm">
                   <input type="radio" name="gender" value="other" checked={formData.gender === 'other'} onChange={handleChange('gender')} />
                   Other
                 </label>
@@ -196,15 +205,15 @@ const Register = () => {
             </div>
           </div>
 
-          <div className="mt-6">
-            <button type="submit" className="w-full bg-indigo-600 text-white px-6 py-3 rounded hover:bg-indigo-700 transition" disabled={loading}>
+          <div className="mt-4 sm:mt-6">
+            <button type="submit" className="w-full bg-indigo-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 font-semibold text-sm sm:text-base" disabled={loading}>
               {loading ? 'Creating...' : 'Create Account'}
             </button>
           </div>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">Already have an account? <Link to="/login" className="text-blue-600 hover:underline font-semibold">Login</Link></p>
+        <div className="mt-4 sm:mt-6 text-center">
+          <p className="text-gray-600 text-xs sm:text-sm">Already have an account? <Link to="/login" className="text-blue-600 hover:underline font-semibold">Login</Link></p>
         </div>
       </div>
     </div>
