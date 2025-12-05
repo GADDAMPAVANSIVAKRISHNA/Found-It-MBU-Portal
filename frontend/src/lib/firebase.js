@@ -2,28 +2,24 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAVGBANDF3HbIfS--CLv0ax1Q5-8Assu7U",
-  authDomain: "found-it-69b12.firebaseapp.com",
-  projectId: "found-it-69b12",
-  storageBucket: "found-it-69b12.appspot.com",   // ✅ FIXED
-  messagingSenderId: "391244190684",
-  appId: "1:391244190684:web:62df31f81e02c89edf7519",
-  measurementId: "G-J2T3PV04MG"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-// Ensure production-like behavior for app verification (no test bypass)
-try {
-  auth.settings.appVerificationDisabledForTesting = false;
-} catch (e) {
-  console.warn("Failed to set appVerificationDisabledForTesting:", e);
-}
 
-const SITE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_PUBLIC_SITE_URL) || window.location.origin;
+// Email verification URL
+const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL;
 
 export const actionCodeSettings = {
   url: `${SITE_URL}/verify-email`,
   handleCodeInApp: true
 };
+
 export default app;
