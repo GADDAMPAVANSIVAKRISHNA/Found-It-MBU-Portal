@@ -30,14 +30,15 @@ const Login = () => {
         setError('User not registered');
         toast.error('User not registered');
       } else if (code === 'auth/wrong-password') {
-        setError('Incorrect username or password.');
-        toast.error('Incorrect username or password.');
+        setError('Incorrect password');
+        toast.error('Incorrect password');
       } else if (code === 'auth/user-not-found') {
         setError('User not registered.');
         toast.error('User not registered.');
       } else {
-        setError('Login failed. Please try again.');
-        toast.error('Login failed');
+        const msg = err?.message || 'Login failed. Please try again.';
+        setError(msg);
+        toast.error(msg);
       }
     } finally {
       setLoading(false);

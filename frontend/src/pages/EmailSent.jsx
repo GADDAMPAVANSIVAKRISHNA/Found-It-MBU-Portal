@@ -6,7 +6,7 @@ import { sendEmailVerification } from 'firebase/auth';
 const EmailSent = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const email = params.get('email') || '';
+  const email = params.get('email') || auth.currentUser?.email || '';
   const [resending, setResending] = useState(false);
   const [message, setMessage] = useState('Verification email sent. Please check your inbox.');
 
