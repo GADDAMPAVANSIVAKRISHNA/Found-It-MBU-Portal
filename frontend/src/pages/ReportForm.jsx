@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../utils/api';
 import { toast } from 'react-hot-toast';
@@ -21,6 +21,9 @@ const ReportForm = () => {
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [whereKeptOption, setWhereKeptOption] = useState('With me');
+
+  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     title: '',
@@ -32,7 +35,7 @@ const ReportForm = () => {
     approximateTime: '',
     email: '',
     mobile: '',
-    whereKept: 'With me',
+    whereKept: '',
     otherLocation: '',
   });
 
@@ -53,6 +56,14 @@ const ReportForm = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const validate = () => {
     if (!form.title.trim()) return toast.error('Please enter item title');
     if (!form.description.trim()) return toast.error('Please enter item description');
@@ -60,8 +71,22 @@ const ReportForm = () => {
     if (!form.date) return toast.error('Please select date');
     if (!form.approximateTime) return toast.error('Please select approximate time');
     if (!form.mobile.trim() && !form.email.trim()) return toast.error('Please provide mobile or email');
-    if (form.mobile && !/^[0-9]{10}$/.test(form.mobile)) return toast.error('Please enter valid 10-digit mobile number');
-    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) return toast.error('Please enter valid email');
+
+    // Strict Mobile Validation
+    if (form.mobile) {
+      if (!/^\d{10}$/.test(form.mobile)) {
+        return toast.error('Please enter a valid 10-digit mobile number');
+      }
+    }
+
+    // Strict Email Validation
+    if (form.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(form.email)) {
+        return toast.error('Please enter a valid email address');
+      }
+    }
+
     if (tab === 'found' && !imageFile) return toast.error('Image is mandatory for found items');
     return true;
   };
@@ -90,6 +115,20 @@ const ReportForm = () => {
       const res = await apiFetch(endpoint, { method: 'POST', body: data });
       if (!res.ok) return toast.error(res?.data?.message || 'Submission failed');
       toast.success('Report submitted successfully', { position: 'top-center' });
+      setForm({
+        title: '',
+        description: '',
+        category: 'Electronics',
+        subcategory: '',
+        location: '',
+        date: '',
+        approximateTime: '',
+        email: '',
+        mobile: '',
+        whereKept: '',
+        otherLocation: '',
+      });
+      handleRemoveImage();
     } catch (err) {
       toast.error(err?.message || 'Submission failed');
     } finally {
@@ -103,18 +142,18 @@ const ReportForm = () => {
         <div className={`bg-white rounded-2xl p-6 shadow-md border-2 ${tab === 'lost' ? 'border-red-500' : 'border-green-500'} transition-colors`}>
           <div className="mb-6 text-center">
             <h1 className={`text-3xl font-bold text-gray-800 mb-2`}>{headerTitle}</h1>
-            <div className={`flex justify-center gap-2`}> 
+            <div className={`flex justify-center gap-2`}>
               <button
                 type="button"
                 onClick={() => setTab('lost')}
-                className={`px-4 py-2 rounded-full text-sm font-semibold border ${tab==='lost' ? 'bg-red-600 text-white border-red-700' : 'bg-red-50 text-red-700 border-red-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-semibold border ${tab === 'lost' ? 'bg-red-600 text-white border-red-700' : 'bg-red-50 text-red-700 border-red-200'}`}
               >
                 I Lost Something
               </button>
               <button
                 type="button"
                 onClick={() => setTab('found')}
-                className={`px-4 py-2 rounded-full text-sm font-semibold border ${tab==='found' ? 'bg-green-600 text-white border-green-700' : 'bg-green-50 text-green-700 border-green-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-semibold border ${tab === 'found' ? 'bg-green-600 text-white border-green-700' : 'bg-green-50 text-green-700 border-green-200'}`}
               >
                 I Found Something
               </button>
@@ -217,23 +256,72 @@ const ReportForm = () => {
 
             {tab === 'found' && (
               <div className="bg-green-50 border border-green-200 rounded p-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Where is the item now?</label>
-                <input
-                  type="text"
-                  name="whereKept"
-                  value={form.whereKept}
-                  onChange={handleChange}
-                  placeholder="Submitted to Security Office, Main Gate"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Where is the item now? *</label>
+
+                <div className="flex gap-4 mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="whereKeptOption"
+                      value="With me"
+                      checked={whereKeptOption === 'With me'}
+                      onChange={() => {
+                        setWhereKeptOption('With me');
+                        setForm(prev => ({ ...prev, whereKept: 'With me' }));
+                      }}
+                      className="accent-green-600 w-4 h-4"
+                    />
+                    <span className="text-gray-700">With me</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="whereKeptOption"
+                      value="Other"
+                      checked={whereKeptOption === 'Other'}
+                      onChange={() => {
+                        setWhereKeptOption('Other');
+                        setForm(prev => ({ ...prev, whereKept: '' }));
+                      }}
+                      className="accent-green-600 w-4 h-4"
+                    />
+                    <span className="text-gray-700">Other</span>
+                  </label>
+                </div>
+
+                {whereKeptOption === 'Other' && (
+                  <input
+                    type="text"
+                    name="whereKept"
+                    value={form.whereKept}
+                    onChange={handleChange}
+                    placeholder="e.g. Submitted to Security Office, Main Gate"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg animate-fade-in-down"
+                  />
+                )}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Image {tab==='found' ? '(Mandatory)' : '(Optional)'}</label>
-              <input type="file" accept="image/*" onChange={handleImageChange} className="w-full" />
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Image {tab === 'found' ? '(Mandatory)' : '(Optional)'}</label>
+              <input type="file" ref={fileInputRef} accept="image/*" onChange={handleImageChange} className="w-full" />
               {imagePreview && (
-                <img src={imagePreview} alt="preview" className="mt-3 h-40 w-full object-cover rounded" />
+                <div className="relative mt-3 inline-block border rounded overflow-hidden max-w-full">
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    className="max-h-[500px] w-auto max-w-full object-contain block"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-red-700 transition-colors z-10"
+                    title="Remove Image"
+                  >
+                    ✕
+                  </button>
+                </div>
               )}
             </div>
 

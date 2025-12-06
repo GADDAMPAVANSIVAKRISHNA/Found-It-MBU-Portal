@@ -11,6 +11,7 @@ const Gallery = () => {
   const [contactItem, setContactItem] = useState(null);
   const [reporterRoll, setReporterRoll] = useState("");
 
+  const [localSearch, setLocalSearch] = useState("");
   const [filters, setFilters] = useState({
     category: "",
     status: "",
@@ -19,31 +20,49 @@ const Gallery = () => {
     endDate: "",
   });
 
+  const handleSearchSubmit = () => {
+    setFilters((prev) => ({
+      ...prev,
+      q: localSearch
+    }));
+    setPage(1);
+  };
+
   useEffect(() => {
     fetchItems();
   }, [page, filters]);
 
   useEffect(() => {
-    const deriveRoll = async () => {
-      if (!contactItem) { setReporterRoll(""); return; }
-      const email = contactItem.userEmail || "";
-      let rn = "";
-      if (email.includes("@mbu.asia")) rn = email.split("@mbu.asia")[0] || "";
-      else if (email.includes("@mbu.edu.in")) rn = email.split("@mbu.edu.in")[0] || "";
-      if (rn) { setReporterRoll(rn); return; }
-      const uid = contactItem.userId;
-      if (uid) {
-        const res = await apiFetch(`/api/users/${uid}`, { method: "GET" });
-        if (res.ok && res.data && res.data.email) {
-          const em = res.data.email || "";
-          if (em.includes("@mbu.asia")) rn = em.split("@mbu.asia")[0] || "";
-          else if (em.includes("@mbu.edu.in")) rn = em.split("@mbu.edu.in")[0] || "";
-        }
+    const fetchRegisteredEmail = async () => {
+      if (!contactItem) {
+        setReporterRoll("");
+        return;
       }
-      if (!rn) rn = (email || "").split("@")[0] || "";
-      setReporterRoll(rn || "");
+
+      try {
+        // Fetch user's registered email from their account
+        const userId = contactItem.userId;
+        if (userId) {
+          const res = await apiFetch(`/api/users/${userId}`, { method: "GET" });
+          if (res.ok && res.data && res.data.email) {
+            // Extract roll number from registered email (part before @)
+            const registeredEmail = res.data.email || "";
+            const rollNumber = registeredEmail.split("@")[0] || "";
+            setReporterRoll(rollNumber);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+
+      // Fallback: use email from item if user fetch fails
+      const email = contactItem.userEmail || "";
+      const rollNumber = email.split("@")[0] || "";
+      setReporterRoll(rollNumber);
     };
-    deriveRoll();
+
+    fetchRegisteredEmail();
   }, [contactItem]);
 
   const fetchItems = async () => {
@@ -150,14 +169,22 @@ const Gallery = () => {
             <option value="returned">Returned</option>
           </select>
 
-          <input
-            type="text"
-            name="q"
-            placeholder="Search..."
-            value={filters.q}
-            onChange={handleFilterChange}
-            className="px-2 sm:px-4 py-2 border rounded-lg flex-1 min-w-40 sm:min-w-48 text-xs sm:text-sm"
-          />
+          <div className="relative flex-1 min-w-40 sm:min-w-48">
+            <input
+              type="text"
+              name="q"
+              placeholder="Search..."
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              className="w-full px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm pr-10"
+            />
+            <button
+              onClick={handleSearchSubmit}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600"
+            >
+              🔍
+            </button>
+          </div>
 
           <input
             type="date"
@@ -175,165 +202,164 @@ const Gallery = () => {
           />
         </div>
 
-      {/* NO ITEMS */}
-      {items.length === 0 ? (
-        <div className="text-center py-12 sm:py-16 lg:py-20 bg-gray-50 rounded-lg">
-          <p className="text-base sm:text-lg lg:text-xl text-gray-600">No items match your filters.</p>
-        </div>
-      ) : (
-        <>
-          {/* Items Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-            {items.map((item) => (
-              <div
-                key={item._id}
-                className="bg-white rounded-lg shadow-md hover:shadow-lg transition overflow-hidden"
-              >
-                {/* Image */}
-                <div className="h-32 sm:h-40 lg:h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.title}
-                      className="w-full h-full object-contain"
-                      onError={(e) => (e.target.style.display = "none")}
-                    />
-                  ) : (
-                    <p className="text-gray-400 text-center text-xs sm:text-sm">No Image</p>
-                  )}
-                </div>
+        {/* NO ITEMS */}
+        {items.length === 0 ? (
+          <div className="text-center py-12 sm:py-16 lg:py-20 bg-gray-50 rounded-lg">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600">No items match your filters.</p>
+          </div>
+        ) : (
+          <>
+            {/* Items Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+              {items.map((item) => (
+                <div
+                  key={item._id}
+                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition overflow-hidden"
+                >
+                  {/* Image */}
+                  <div className="h-32 sm:h-40 lg:h-48 bg-gray-200 flex items-center justify-center overflow-hidden">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-full h-full object-contain"
+                        onError={(e) => (e.target.style.display = "none")}
+                      />
+                    ) : (
+                      <p className="text-gray-400 text-center text-xs sm:text-sm">No Image</p>
+                    )}
+                  </div>
 
-                {/* Content */}
-                <div className="p-2 sm:p-3">
-                  <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-2 line-clamp-2">
-                    {item.title}
-                  </h3>
+                  {/* Content */}
+                  <div className="p-2 sm:p-3">
+                    <h3 className="text-sm sm:text-base lg:text-lg font-semibold mb-2 line-clamp-2">
+                      {item.title}
+                    </h3>
 
-                  {/* Category + Status */}
-                  <div className="mb-2 sm:mb-3 flex gap-2 flex-wrap">
-                    <span className="bg-blue-100 text-blue-800 text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
-                      {item.category}
-                    </span>
+                    {/* Category + Status */}
+                    <div className="mb-2 sm:mb-3 flex gap-2 flex-wrap">
+                      <span className="bg-blue-100 text-blue-800 text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                        {item.category}
+                      </span>
 
-                    <span
-                      className={`text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold ${
-                        item.itemType === "Found"
+                      <span
+                        className={`text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold ${item.itemType === "Found"
                           ? (item.status || "").toLowerCase() === "claimed"
                             ? "bg-yellow-100 text-yellow-800"
                             : (item.status || "").toLowerCase() === "returned"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
                           : "bg-orange-100 text-orange-800"
-                      }`}
-                    >
-                      {item.itemType === "Found"
-                        ? item.status?.toLowerCase() === "active"
-                          ? "Unclaimed"
-                          : item.status || "Unclaimed"
-                        : "Lost"}
-                    </span>
-                  </div>
+                          }`}
+                      >
+                        {item.itemType === "Found"
+                          ? item.status?.toLowerCase() === "active"
+                            ? "Unclaimed"
+                            : item.status || "Unclaimed"
+                          : "Lost"}
+                      </span>
+                    </div>
 
-                  {/* Location + Date */}
-                  <div className="text-xs sm:text-sm text-gray-600 mb-3 space-y-0.5">
-                    <p>📍 {item.location || item.approximateLocation}</p>
-                    <p>
-                      📅{" "}
-                      {new Date(
-                        item.date || item.dateFound || item.dateLost
-                      ).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                    {/* Location + Date */}
+                    <div className="text-xs sm:text-sm text-gray-600 mb-3 space-y-0.5">
+                      <p>📍 {item.location || item.approximateLocation}</p>
+                      <p>
+                        📅{" "}
+                        {new Date(
+                          item.date || item.dateFound || item.dateLost
+                        ).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-3">
+                      {item.description}
                     </p>
-                  </div>
 
-                  {/* Description */}
-                  <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-3">
-                    {item.description}
-                  </p>
-
-                  {/* Buttons */}
-                  <div className="flex">
-                    <button
-                      className="w-full bg-green-600 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-green-700 transition"
-                      onClick={() => setContactItem(item)}
-                    >
-                      Connect
-                    </button>
+                    {/* Buttons */}
+                    <div className="flex">
+                      <button
+                        className="w-full bg-green-600 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-green-700 transition"
+                        onClick={() => setContactItem(item)}
+                      >
+                        Connect
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 sm:gap-4">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                  className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-200 rounded-lg disabled:opacity-50 text-xs sm:text-sm"
+                >
+                  ← Previous
+                </button>
+
+                <span className="text-gray-600 text-xs sm:text-sm">
+                  Page {page} of {totalPages}
+                </span>
+
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(page + 1)}
+                  className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-200 rounded-lg disabled:opacity-50 text-xs sm:text-sm"
+                >
+                  Next →
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
+        )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 sm:gap-4">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-200 rounded-lg disabled:opacity-50 text-xs sm:text-sm"
-              >
-                ← Previous
-              </button>
+        {/* CONTACT MODAL */}
+        {contactItem && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold">Contact Details</h3>
+                <button onClick={() => setContactItem(null)} className="text-lg hover:text-gray-600">✕</button>
+              </div>
 
-              <span className="text-gray-600 text-xs sm:text-sm">
-                Page {page} of {totalPages}
-              </span>
+              <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                <p>
+                  <strong>Name:</strong> {reporterRoll || "N/A"}
+                </p>
+                <p>
+                  <strong>Mobile:</strong> {contactItem.userContact || "N/A"}
+                </p>
+                <p>
+                  <strong>Email:</strong> {contactItem.userEmail || "N/A"}
+                </p>
 
-              <button
-                disabled={page === totalPages}
-                onClick={() => setPage(page + 1)}
-                className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-200 rounded-lg disabled:opacity-50 text-xs sm:text-sm"
-              >
-                Next →
-              </button>
-            </div>
-          )}
-        </>
-      )}
+                <hr className="my-2" />
 
-      {/* CONTACT MODAL */}
-      {contactItem && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6">
-            <div className="flex justify-between items-center mb-3 sm:mb-4">
-              <h3 className="text-base sm:text-lg lg:text-xl font-bold">Contact Details</h3>
-              <button onClick={() => setContactItem(null)} className="text-lg hover:text-gray-600">✕</button>
-            </div>
+                <p>
+                  <strong>Item:</strong> {contactItem.title}
+                </p>
+                <p className="text-gray-600">{contactItem.description}</p>
+              </div>
 
-            <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-              <p>
-                <strong>Name:</strong> {reporterRoll || "N/A"}
-              </p>
-              <p>
-                <strong>Mobile:</strong> {contactItem.userContact || "N/A"}
-              </p>
-              <p>
-                <strong>Email:</strong> {contactItem.userEmail || "N/A"}
-              </p>
-
-              <hr className="my-2" />
-
-              <p>
-                <strong>Item:</strong> {contactItem.title}
-              </p>
-              <p className="text-gray-600">{contactItem.description}</p>
-            </div>
-
-            <div className="mt-4 flex">
-              <button
-                className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm hover:bg-gray-50 transition"
-                onClick={() => setContactItem(null)}
-              >
-                Close
-              </button>
+              <div className="mt-4 flex">
+                <button
+                  className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm hover:bg-gray-50 transition"
+                  onClick={() => setContactItem(null)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

@@ -253,4 +253,44 @@ router.post('/reset-password/:token', async (req, res) => {
   }
 });
 
+// RESEND VERIFICATION EMAIL
+router.post('/resend-verification-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ error: 'Email is already verified' });
+    }
+
+    // Generate a new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    user.verificationOtp = otp;
+    user.verificationOtpExpires = otpExpiry;
+    await user.save();
+
+    // Send verification email with new OTP
+    try {
+      await sendVerificationOtpEmail(email, otp);
+      res.status(200).json({ message: 'Verification email sent. Please check your inbox.' });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      res.status(500).json({ error: 'Failed to send verification email. Please try again later.' });
+    }
+  } catch (error) {
+    console.error('Error in resend-verification-email:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -19,10 +19,17 @@ const VerifyEmail = () => {
         }
         await applyActionCode(auth, oobCode);
         // Marked verified on Firebase side. Reload current user if available.
-        try { if (auth.currentUser) await auth.currentUser.reload(); } catch (e) {}
+        try { if (auth.currentUser) await auth.currentUser.reload(); } catch (e) { }
         setMessage('Email verified, you can now login');
       } catch (e) {
-        setMessage('Verification link expired, resend email');
+        // If the code is invalid, it mostly means it was already used (e.g. by email scanner)
+        // or actually expired.
+        // We encourage the user to try logging in.
+        if (e.code === 'auth/invalid-action-code') {
+          setMessage('Link invalid or already used. You might already be verified. Please try logging in.');
+        } else {
+          setMessage('Verification failed. Link may be expired.');
+        }
       }
     };
     verify();

@@ -21,23 +21,25 @@ const Login = () => {
       toast.success("Login successful!");
       navigate("/");
     } catch (err) {
+      console.error(err);
       const code = err?.code || '';
+
       if (code === 'email-not-verified') {
-        setError('Please verify your email');
-        toast.error('Please verify your email');
+        setError('Email not verified. Please check your inbox.');
+        toast.error('Please verify your email to login.');
       } else if (code === 'profile-missing') {
-        setError('User profile missing');
-        toast.error('User profile missing');
+        setError('User profile missing. Please register again.');
       } else if (code === 'auth/wrong-password') {
-        setError('Incorrect password');
-        toast.error('Incorrect password');
+        setError('Incorrect password. Please try again.');
       } else if (code === 'auth/user-not-found') {
-        setError('User not registered.');
-        toast.error('User not registered.');
+        setError('User not registered with this email.');
+      } else if (code === 'auth/invalid-credential') {
+        setError('Invalid email or password.');
+      } else if (code === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Please reset your password or try later.');
       } else {
-        const msg = err?.message || 'Login failed. Please try again.';
-        setError(msg);
-        toast.error(msg);
+        setError(err?.message || 'Login failed. Please try again.');
+        toast.error('Login failed');
       }
     } finally {
       setLoading(false);

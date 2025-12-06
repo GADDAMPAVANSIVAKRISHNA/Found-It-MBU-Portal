@@ -18,7 +18,7 @@ async function maybeAuth(req, _res, next) {
         req.userId = decoded.userId;
       }
     }
-  } catch (_) {}
+  } catch (_) { }
   next();
 }
 
@@ -538,14 +538,54 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
-// GET /items/:id  -> accepts prefixed id (lost_xxx / found_xxx)
-router.get('/items/:id', async (req, res) => {
+// -----------------------------
+// DELETE /:id
+// Only owner can delete. Only 'Active' items can be deleted.
+// -----------------------------
+router.delete('/:id', auth, async (req, res) => {
   try {
-    const doc = await fetchItemByPrefixedId(req.params.id);
-    if (!doc) return res.status(404).json({ success: false, message: 'Item not found' });
-    return res.json({ success: true, item: doc });
+    const rawId = req.params.id;
+    let doc = null;
+    let model = null;
+
+    // Resolve model and doc
+    if (rawId.startsWith('lost_')) {
+      model = LostItem;
+      doc = await model.findById(rawId.split('_')[1]);
+    } else if (rawId.startsWith('found_')) {
+      model = FoundItem;
+      doc = await model.findById(rawId.split('_')[1]);
+    } else {
+      // try lost then found
+      model = LostItem;
+      doc = await model.findById(rawId);
+      if (!doc) {
+        model = FoundItem;
+        doc = await model.findById(rawId);
+      }
+    }
+
+    if (!doc) {
+      return res.status(404).json({ success: false, message: 'Item not found' });
+    }
+
+    // Check ownership
+    if (!doc.userId || doc.userId.toString() !== req.userId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized execution' });
+    }
+
+    // Check status
+    if (doc.status !== 'Active') {
+      return res.status(400).json({ success: false, message: 'Cannot delete item that is Claimed or Returned' });
+    }
+
+    await model.deleteOne({ _id: doc._id });
+    return res.json({ success: true, message: 'Item deleted successfully' });
+
   } catch (err) {
+    console.error('DELETE /:id error:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
+module.exports = router;

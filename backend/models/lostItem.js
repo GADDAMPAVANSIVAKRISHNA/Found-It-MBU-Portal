@@ -30,8 +30,8 @@ const LostItemSchema = new mongoose.Schema({
   userName: { type: String },
   userEmail: { type: String },
   userContact: { type: String },
-  contactPreference: { type: String, enum: ['mobile','email','both',''], default: '' },
-  whereKept: { type: String, enum: ['With me','Lost & Found Office','Security Office',''], default: '' },
+  contactPreference: { type: String, enum: ['mobile', 'email', 'both', ''], default: '' },
+  whereKept: { type: String, default: '' },
   status: { type: String, enum: ['Active', 'Returned'], default: 'Active' },
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now }

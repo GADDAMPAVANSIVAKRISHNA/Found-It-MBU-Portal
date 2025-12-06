@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
 import { AuthProvider } from "./context/AuthContext";
 
@@ -40,6 +41,7 @@ function App() {
       <Router>
         <div className="min-h-screen">
           <Navbar />
+          <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
           <main className="min-h-screen">
             <Routes>
 

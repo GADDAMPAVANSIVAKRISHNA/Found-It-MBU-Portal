@@ -21,7 +21,17 @@ module.exports.verifyToken = async (req, res, next) => {
 
     const decoded = await admin.auth().verifyIdToken(token);
     req.user = decoded; // contains uid, email, etc.
-    return next();
+    // Check if user exists in MongoDB and is email verified
+      const User = require('../models/user');
+      try {
+        const user = await User.findOne({ email: decoded.email });
+        if (!user || !user.isVerified) {
+          return res.status(403).json({ 
+            error: 'Email not verified. Please verify your email before accessing the app.'
+          });
+        }
+        req.user = decoded;
+        return next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid Firebase token', details: error && error.message ? error.message : error });
   }

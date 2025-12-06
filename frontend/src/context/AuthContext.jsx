@@ -26,8 +26,9 @@ export const AuthProvider = ({ children }) => {
           // Check if email is verified
           await u.reload();
           if (!u.emailVerified) {
-            // Email not verified - set user but don't fully authenticate
-            setUser(u);
+            // Email not verified - force sign out to prevent access
+            await signOut(auth);
+            setUser(null);
             setToken(null);
             setLoading(false);
             return;
@@ -77,9 +78,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       await userCredential.user.reload();
-      
+
       if (!userCredential.user.emailVerified) {
-        throw new Error('Email not verified');
+        await signOut(auth);
+        const err = new Error('Email not verified');
+        err.code = 'email-not-verified';
+        throw err;
       }
 
       const idToken = await userCredential.user.getIdToken();

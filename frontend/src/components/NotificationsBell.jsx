@@ -47,50 +47,55 @@
 
 
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const NotificationsBell = () => {
-  const [open, setOpen] = useState(false);
-  const [notes, setNotes] = useState([]);
   const location = useLocation();
   const containerRef = useRef(null);
+  const [showMsg, setShowMsg] = useState(false);
 
   // Disable notifications until backend endpoints are created
   useEffect(() => {
     console.log("Notifications temporarily disabled — no backend API available.");
-    setNotes([]); // always empty for now
   }, []);
 
   // Close popup when route changes
-  useEffect(() => { setOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    setShowMsg(false);
+  }, [location.pathname]);
 
   // Close when clicking outside
   useEffect(() => {
     const handler = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false);
+        setShowMsg(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const handleClick = () => {
+    setShowMsg(true);
+    setTimeout(() => {
+      setShowMsg(false);
+    }, 1500);
+  };
+
   return (
     <div ref={containerRef} className="relative">
-      <button aria-label="Notifications" className="relative" onClick={() => setOpen(!open)}>
+      <button
+        aria-label="Notifications"
+        className="relative"
+        onClick={handleClick}
+      >
         <span>🔔</span>
-        {notes.length > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded">
-            {notes.length}
-          </span>
-        )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg p-3 z-50">
-          <div className="font-bold mb-2">Notifications</div>
-          <div className="text-sm text-gray-600">Notifications feature is coming soon.</div>
+      {showMsg && (
+        <div className="absolute right-0 top-full mt-2 w-48 bg-white text-gray-800 text-xs rounded-md shadow-lg border border-gray-200 p-2 z-50 text-center animate-fade-in-down">
+          Notifications feature is coming soon.
         </div>
       )}
     </div>

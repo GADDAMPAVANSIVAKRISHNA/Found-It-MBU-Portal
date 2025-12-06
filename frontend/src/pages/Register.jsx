@@ -50,6 +50,11 @@ const Register = () => {
       return;
     }
 
+    if (formData.contactNumber && !/^\d{10}$/.test(formData.contactNumber)) {
+      setError('Contact number must be exactly 10 digits and contain only numbers');
+      return;
+    }
+
     setLoading(true);
     try {
       // Attempt to create Firebase user

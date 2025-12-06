@@ -21,52 +21,129 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="bg-white shadow-lg w-full overflow-x-hidden">
+    <nav className="bg-white shadow-lg w-full relative z-50">
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex justify-between h-14 sm:h-16 items-center">
-          
+
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <img 
-              src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" 
-              alt="MBU" 
-              className="h-8 sm:h-10 lg:h-12 w-auto object-contain" 
+            <img
+              src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png"
+              alt="MBU"
+              className="h-8 sm:h-10 lg:h-12 w-auto object-contain"
             />
             <span className="font-bold text-primary whitespace-nowrap text-sm sm:text-lg lg:text-xl tracking-wide hidden sm:inline">
               Found-It
             </span>
           </Link>
 
+          {/* Right Section */}
           <div className="flex items-center gap-2 sm:gap-4 ml-auto">
-            {user && (
-              <>
-                <Link to="/gallery" className="nav-chip text-gray-700 text-xs sm:text-sm hidden md:inline">Browse</Link>
-                <Link to="/dashboard" className="nav-chip text-gray-700 text-xs sm:text-sm hidden md:inline">Dashboard</Link>
-                <NotificationsBell />
-              </>
-            )}
 
-            {user ? (
-              <>
-                <span className="hello-pill text-xs sm:text-sm hidden sm:inline truncate max-w-[150px] lg:max-w-none">
-                  {`Hello, ${(user?.email || '').split('@')[0] || ''}`}
-                </span>
-                <button
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-700 hover:text-red-600 hover:bg-gray-100 text-xs sm:text-sm transition"
-                  onClick={() => { logout(); navigate('/'); }}
-                >
-                  ⟶ Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-gray-200 transition transform hover:-translate-y-0.5 active:scale-95 hover:bg-blue-600 hover:text-white active:bg-blue-700 text-xs sm:text-sm font-semibold">Login</Link>
-                <Link to="/register" className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-primary text-white transition transform hover:-translate-y-0.5 active:scale-95 hover:bg-blue-600 active:bg-blue-700 text-xs sm:text-sm font-semibold">Register</Link>
-              </>
-            )}
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
+              {user && (
+                <>
+                  <Link to="/gallery" className="text-gray-700 hover:text-blue-600 font-medium text-sm transition">Browse</Link>
+                  <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 font-medium text-sm transition">Dashboard</Link>
+                  <NotificationsBell />
+                </>
+              )}
+
+              {user ? (
+                <>
+                  <span className="text-sm font-medium text-gray-500 truncate max-w-[150px]">
+                    {`Hello, ${(user?.email || '').split('@')[0] || ''}`}
+                  </span>
+                  <button
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors font-medium text-sm"
+                    onClick={() => { logout(); navigate('/'); }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                    </svg>
+                    <span>Logout</span>
+                  </button>
+                </>
+              ) : (
+                <Link to="/login" className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold text-sm transition">Login</Link>
+              )}
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <div className="flex md:hidden items-center gap-3">
+              {user && <NotificationsBell />}
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 text-gray-600 rounded-lg hover:bg-gray-100 focus:outline-none"
+                aria-label="Toggle menu"
+              >
+                {menuOpen ? (
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
+
           </div>
-
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {menuOpen && (
+        <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl py-2 px-4 flex flex-col gap-2 z-50 animate-fade-in-down">
+          {user ? (
+            <>
+              <div className="px-3 py-2 text-sm text-gray-500 font-semibold border-b border-gray-100 mb-2">
+                {`Hello, ${(user?.email || '').split('@')[0] || ''}`}
+              </div>
+              <Link
+                to="/gallery"
+                className="block px-3 py-2 rounded-lg text-base font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                onClick={() => setMenuOpen(false)}
+              >
+                Browse Items
+              </Link>
+              <Link
+                to="/dashboard"
+                className="block px-3 py-2 rounded-lg text-base font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                onClick={() => setMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <button
+                className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-base font-medium text-red-600 hover:bg-red-50"
+                onClick={() => { logout(); navigate('/'); setMenuOpen(false); }}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                </svg>
+                Logout
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="block px-3 py-2 rounded-lg text-base font-medium text-gray-700 hover:bg-gray-100"
+              onClick={() => setMenuOpen(false)}
+            >
+              Login
+            </Link>
+          )}
+        </div>
+      )}
     </nav>
   );
 };
