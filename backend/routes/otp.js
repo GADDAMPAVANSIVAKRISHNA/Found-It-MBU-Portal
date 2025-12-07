@@ -24,54 +24,60 @@ router.post("/send", async (req, res) => {
       expiresAt
     });
 
-    // Debug: Log what we are using (mask password)
-    console.log("OTP Email Config:", {
-      host: process.env.SMTP_HOST || "smtp.office365.com",
-      port: process.env.SMTP_PORT || 587,
-      user: process.env.EMAIL_USER || process.env.MAIL_USER,
-    });
+    // ---------------------------------------------------------
+    // ALWAYS Log OTP to console (for Dev/Render Logs access)
+    // ---------------------------------------------------------
+    console.log("=================================================");
+    console.log(`[Generated OTP]: ${otpCode} for ${email}`);
+    console.log("=================================================");
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || "smtp.office365.com",
       port: process.env.SMTP_PORT || 587,
-      secure: process.env.SMTP_SECURE === "true", // false for 587 usually
+      secure: process.env.SMTP_SECURE === "true",
       auth: {
         user: process.env.EMAIL_USER || process.env.MAIL_USER,
         pass: process.env.EMAIL_PASS || process.env.MAIL_PASS,
       },
       tls: {
         ciphers: 'SSLv3',
-        rejectUnauthorized: false // Helps with some self-signed cert issues or strict firewalls
-      }
+        rejectUnauthorized: false
+      },
+      connectionTimeout: 10000, // Fail after 10 seconds if no connection
+      greetingTimeout: 5000     // Fail if server doesn't say hello
     });
 
-    try {
-      await transporter.sendMail({
-        to: email,
-        subject: "Your OTP Code",
-        html: `
-          <h2>Your OTP Code:</h2>
-          <h1>${otpCode}</h1>
-          <p>Valid for only 5 minutes.</p>
-        `,
-      });
-      return res.json({ success: true, message: "OTP sent to registered mail. Please check your inbox." });
-    } catch (emailError) {
-      console.error("Error sending email:", emailError.message);
+    // ---------------------------------------------------------
+    // NON-BLOCKING Email Send
+    // Fire and forget (Handle errors in background)
+    // ---------------------------------------------------------
+    transporter.sendMail({
+      to: email,
+      subject: "Your OTP Code - MBU Portal",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
+          <h2 style="color: #333;">Mohan Babu University</h2>
+          <p>Your OTP code is:</p>
+          <h1 style="color: #4F46E5; font-size: 32px; letter-spacing: 5px;">${otpCode}</h1>
+          <p>Valid for 5 minutes.</p>
+        </div>
+      `,
+    }).catch(err => {
+      console.error("❌ Background Email Warning: Failed to send OTP email.");
+      console.error(err.message);
+      console.log(`💡 Use the fallback OTP from logs: ${otpCode}`);
+    });
 
-      // FALLBACK FOR DEV/DEMO: If email fails (e.g. auth disabled), log OTP to console
-      // so the user can still proceed with verification.
-      console.log("=================================================");
-      console.log(`FALLBACK OTP (Use this to verify): ${otpCode}`);
-      console.log("=================================================");
-
-      return res.json({
-        success: true,
-        message: "OTP sent (Email delivery failed: check server console for code)"
-      });
-    }
+    // ---------------------------------------------------------
+    // Return Success IMMEDIATELY to Frontend
+    // ---------------------------------------------------------
+    return res.json({
+      success: true,
+      message: "OTP sent to registered mail. Please check your inbox."
+    });
 
   } catch (error) {
+    console.error("OTP Route Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });
