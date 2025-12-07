@@ -62,7 +62,7 @@ const Register = () => {
       try {
         cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       } catch (fbErr) {
-        // If Firebase account already exists, we'll still try to create backend profile and attempt to send verification by signing in briefly
+        // If Firebase account already exists, we'll still try to create backend profile
         if (fbErr?.code === 'auth/email-already-in-use') {
           // Try to create backend profile even if Firebase user exists
           const registerResExisting = await apiFetch('/api/users/register', {
@@ -77,21 +77,25 @@ const Register = () => {
             }),
           });
 
-          // Try to sign in temporarily to send verification email (then sign out)
+          // Try to sign in temporarily force logout
           try {
-            const temp = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+            await signInWithEmailAndPassword(auth, formData.email, formData.password);
+            // Removed: verification email for existing users to avoid link
+            /*
             if (temp && !temp.user.emailVerified) {
               await sendEmailVerification(temp.user, actionCodeSettings);
             }
+            */
             await signOut(auth);
           } catch (signInErr) {
             // cannot sign in (wrong password) - continue anyway
           }
 
-          setSuccess('If an account exists, a verification email was sent (if possible). Please check your inbox.');
+          setSuccess('If an account exists, proceed to OTP verification.');
           setEmailSent(true);
           setLoading(false);
-          navigate(`/email-sent?email=${encodeURIComponent(formData.email)}`);
+          // Pass email to VerifyOtp page
+          navigate('/verify-otp', { state: { email: formData.email } });
           return;
         } else {
           throw fbErr;
@@ -100,7 +104,7 @@ const Register = () => {
 
       // At this point Firebase user was created
       await updateProfile(cred.user, { displayName: formData.name });
-      await sendEmailVerification(cred.user, actionCodeSettings);
+      // Removed: sendEmailVerification(cred.user, actionCodeSettings);
 
       // Create user in MongoDB immediately after Firebase creation
       const registerRes = await apiFetch('/api/users/register', {
@@ -122,10 +126,11 @@ const Register = () => {
       // Do NOT keep the user logged in
       try { await signOut(auth); } catch (e) { }
 
-      setSuccess('Verification email sent. Please check your inbox.');
+      setSuccess('Registration successful. Proceeding to OTP verification.');
       setEmailSent(true);
       setLoading(false);
-      navigate(`/email-sent?email=${encodeURIComponent(formData.email)}`);
+      // Pass email to VerifyOtp page
+      navigate('/verify-otp', { state: { email: formData.email } });
 
     } catch (err) {
       console.error('Register error', err);

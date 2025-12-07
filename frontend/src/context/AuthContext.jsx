@@ -23,22 +23,11 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       try {
         if (u) {
-          // Check if email is verified
           await u.reload();
-          if (!u.emailVerified) {
-            // Email not verified - force sign out to prevent access
-            await signOut(auth);
-            setUser(null);
-            setToken(null);
-            setLoading(false);
-            return;
-          }
 
-          // Get Firebase ID token
           const idToken = await u.getIdToken();
           setToken(idToken);
 
-          // Load user profile from backend
           try {
             const response = await apiFetch(`/api/users/by-email?email=${encodeURIComponent(u.email)}`, {
               method: 'GET',
@@ -48,13 +37,18 @@ export const AuthProvider = ({ children }) => {
             });
             if (response.ok) {
               const userData = await response.json();
+              if (userData && userData.isVerified === false) {
+                await signOut(auth);
+                setUser(null);
+                setToken(null);
+                setLoading(false);
+                return;
+              }
               setUser({ ...u, ...userData });
             } else {
-              // User not found in backend, set basic Firebase user
               setUser(u);
             }
           } catch (error) {
-            console.error('Error loading user profile:', error);
             setUser(u);
           }
         } else {
@@ -79,14 +73,24 @@ export const AuthProvider = ({ children }) => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       await userCredential.user.reload();
 
-      if (!userCredential.user.emailVerified) {
-        await signOut(auth);
-        const err = new Error('Email not verified');
-        err.code = 'email-not-verified';
-        throw err;
+      const idToken = await userCredential.user.getIdToken();
+      const profileRes = await apiFetch(`/api/users/by-email?email=${encodeURIComponent(userCredential.user.email)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+        },
+      });
+
+      if (profileRes.ok) {
+        const userData = await profileRes.json();
+        if (userData && userData.isVerified === false) {
+          await signOut(auth);
+          const err = new Error('Email not verified');
+          err.code = 'email-not-verified';
+          throw err;
+        }
       }
 
-      const idToken = await userCredential.user.getIdToken();
       setToken(idToken);
       setUser(userCredential.user);
       return userCredential.user;
