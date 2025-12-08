@@ -20,6 +20,9 @@ const Navbar = () => {
     );
   }
 
+  // Strict check: User must be present AND verified to see auth UI
+  const isVerifiedUser = user && (user.isVerified === true || user.emailVerified === true);
+
   return (
     <nav className="bg-white shadow-lg w-full relative z-50">
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8">
@@ -42,7 +45,7 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-4">
-              {user && (
+              {isVerifiedUser && (
                 <>
                   <Link to="/gallery" className="text-gray-700 hover:text-blue-600 font-medium text-sm transition">Browse</Link>
                   <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 font-medium text-sm transition">Dashboard</Link>
@@ -50,7 +53,7 @@ const Navbar = () => {
                 </>
               )}
 
-              {user ? (
+              {isVerifiedUser ? (
                 <>
                   <span className="text-sm font-medium text-gray-500 truncate max-w-[150px]">
                     {`Hello, ${(user?.email || '').split('@')[0] || ''}`}
@@ -104,7 +107,7 @@ const Navbar = () => {
       {/* Mobile Menu Dropdown */}
       {menuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl py-2 px-4 flex flex-col gap-2 z-50 animate-fade-in-down">
-          {user ? (
+          {isVerifiedUser ? (
             <>
               <div className="px-3 py-2 text-sm text-gray-500 font-semibold border-b border-gray-100 mb-2">
                 {`Hello, ${(user?.email || '').split('@')[0] || ''}`}

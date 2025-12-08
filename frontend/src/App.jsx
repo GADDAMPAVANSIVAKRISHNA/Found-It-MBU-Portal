@@ -21,7 +21,6 @@ import ReportForm from "./pages/ReportForm";
 import Gallery from "./pages/Gallery";
 import ItemDetails from "./pages/ItemDetails";
 import VerifyEmail from "./pages/VerifyEmail";
-import VerifyOtp from "./pages/VerifyOtp";
 import EmailSent from "./pages/EmailSent";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -52,7 +51,6 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/email-sent" element={<EmailSent />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/gallery" element={<Gallery />} />

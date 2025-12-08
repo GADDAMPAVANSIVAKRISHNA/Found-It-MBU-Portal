@@ -94,19 +94,8 @@ const admin = require("../firebase");
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 
-// Ensure Firebase Admin is initialized
-try {
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(
-        JSON.parse(process.env.FIREBASE_ADMIN_KEY)
-      ),
-    });
-    console.log("🔥 Firebase Admin Initialized");
-  }
-} catch (err) {
-  console.error("❌ Firebase Admin Init Error:", err.message);
-}
+// Firebase Admin is already initialized in ../firebase.js
+// We just use the instance.
 
 module.exports = async (req, res, next) => {
   try {
@@ -129,6 +118,10 @@ module.exports = async (req, res, next) => {
 
         if (user) {
           user.firebaseUid = decoded.uid;
+          // Sync verification status if Firebase says verified
+          if (decoded.email_verified && !user.isVerified) {
+            user.isVerified = true;
+          }
           await user.save();
         } else {
           // Auto-create new user
@@ -142,8 +135,14 @@ module.exports = async (req, res, next) => {
             gender: "Not set",
             contactNumber: "Not set",
             password: Math.random().toString(36).slice(-10),
-            isVerified: true,
+            isVerified: decoded.email_verified || false,
           });
+        }
+      } else {
+        // User found by UID, check if we need to sync verification
+        if (decoded.email_verified && !user.isVerified) {
+          user.isVerified = true;
+          await user.save();
         }
       }
 

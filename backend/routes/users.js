@@ -1,14 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
-const OTP = require('../models/otp');
 const auth = require('../middleware/auth');
-const { sendVerificationOtpEmail } = require('../utils/email');
 
-// 🔹 REGISTER USER + SEND OTP
+// 🔹 REGISTER USER ( Internal / Post-Firebase )
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, branch, year, contactNumber, gender } = req.body;
+    const { name, email, branch, year, contactNumber, gender, password } = req.body;
 
     // Validate domain
     if (!email || !/@mbu\.asia$/.test(email)) {
@@ -18,36 +16,29 @@ router.post('/register', async (req, res) => {
     // Check if user already exists
     let user = await User.findOne({ email });
 
-    // Create new user if not exists
-    if (!user) {
-      user = new User({
-        name: name || email.split('@')[0],
-        email,
-        mbuEmail: email,
-        password: Math.random().toString(36).slice(2),
-        branch: branch || 'NA',
-        year: year || 'NA',
-        contactNumber: contactNumber || '',
-        gender: gender || '',
-        role: 'student',
-        isVerified: false // IMPORTANT
-      });
-
-      await user.save();
+    if (user) {
+      return res.status(409).json({ error: 'User already exists' });
     }
 
-    // Generate 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000);
+    // Create new user
+    user = new User({
+      name: name || email.split('@')[0],
+      email,
+      mbuEmail: email,
+      password: password || Math.random().toString(36).slice(2), // Use provided password or random
+      branch: branch || 'NA',
+      year: year || 'NA',
+      contactNumber: contactNumber || '',
+      gender: gender || '',
+      role: 'student',
+      isVerified: false // Wait for Firebase verification
+    });
 
-    // Store OTP in DB
-    await OTP.create({ email, otp });
-
-    // Send email
-    await sendVerificationOtpEmail(email, otp);
+    await user.save();
 
     return res.json({
       success: true,
-      message: "OTP sent to email",
+      message: "User profile created",
       user: { id: user._id, email: user.email }
     });
 
@@ -59,10 +50,16 @@ router.post('/register', async (req, res) => {
 
 
 // 🔹 GET USER BY EMAIL
-router.get('/by-email', async (req, res) => {
+router.get('/by-email', auth, async (req, res) => {
   try {
     const { email } = req.query;
     if (!email) return res.status(400).json({ error: 'email query required' });
+
+    // Security check: ensure requesting user matches query email or is admin
+    // req.user is populated by auth middleware
+    if (req.user.email !== email && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
 
     const user = await User.findOne({ email }).select('-password');
     if (!user) return res.status(404).json({ error: 'User not found' });

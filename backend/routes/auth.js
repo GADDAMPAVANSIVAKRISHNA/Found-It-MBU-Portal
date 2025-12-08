@@ -3,9 +3,10 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/user');
-const { sendVerificationEmail, sendPasswordResetEmail, sendVerificationOtpEmail, isEmailConfigured } = require('../utils/email');
+const { sendPasswordResetEmail, isEmailConfigured } = require('../utils/email');
 const auth = require('../middleware/auth');
 const https = require('https');
+const admin = require('../config/firebaseAdmin');
 const jwksClient = require('jwks-rsa');
 
 // quick test inside auth router
@@ -29,11 +30,8 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'User exists' });
     }
 
-    // Generate OTP for email verification
-    const otp = (Math.floor(100000 + Math.random() * 900000)).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-
-    // Create user with initial status
+    // Create user with initial status (Not Verified)
+    // We rely on Firebase Client SDK to send the verification email.
     const user = new User({
       name,
       email,
@@ -41,62 +39,20 @@ router.post('/register', async (req, res) => {
       branch,
       year,
       contactNumber,
-      verificationOtp: otp,
-      verificationOtpExpires: otpExpires,
       isVerified: false
     });
 
-
-
     await user.save();
-
-    // ----------------------------------------------------
-    // NON-BLOCKING EMAIL SEND
-    // ----------------------------------------------------
-    // We do NOT await this. We return success immediately.
-    sendVerificationOtpEmail(email, otp).catch(err => {
-      console.error("⚠️ Background Registration Email Warning:", err.message);
-    });
 
     res.status(201).json({
-      message: 'OTP sent to email. Verify to activate account.',
-      // For dev/debug only, if mail fails, user might need this. 
-      // In prod, remove this if strict security is needed, but helpful for Render debugging.
-      otp: otp
+      message: 'User registered. Please check email for verification.',
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// VERIFY OTP - Email verification
-router.post('/verify-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    // Check OTP validity
-    if (user.verificationOtp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-
-    if (new Date() > user.verificationOtpExpires) {
-      return res.status(400).json({ error: 'OTP expired' });
-    }
-
-    // Mark user as verified
-    user.isVerified = true;
-    user.verificationOtp = undefined;
-    user.verificationOtpExpires = undefined;
-    await user.save();
-
-    res.json({ message: 'Email verified successfully. You can now login.' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // LOGIN
 router.post('/login', async (req, res) => {
@@ -112,9 +68,27 @@ router.post('/login', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user is verified
+    // Check if user is verified (Sync with Firebase)
     if (!user.isVerified) {
-      return res.status(403).json({ error: 'Please verify your email first' });
+      let isActuallyVerified = false;
+
+      // Try to check with Firebase Admin if available
+      if (admin) {
+        try {
+          const fbUser = await admin.auth().getUserByEmail(email);
+          if (fbUser.emailVerified) {
+            isActuallyVerified = true;
+            user.isVerified = true;
+            await user.save();
+          }
+        } catch (fbErr) {
+          console.warn("Could not fetch Firebase status:", fbErr.message);
+        }
+      }
+
+      if (!isActuallyVerified) {
+        return res.status(403).json({ error: 'Please verify your email before logging in.' });
+      }
     }
 
     // Check password
@@ -252,44 +226,6 @@ router.post('/reset-password/:token', async (req, res) => {
   }
 });
 
-// RESEND VERIFICATION EMAIL
-router.post('/resend-verification-email', async (req, res) => {
-  try {
-    const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (user.isVerified) {
-      return res.status(400).json({ error: 'Email is already verified' });
-    }
-
-    // Generate a new OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-
-    user.verificationOtp = otp;
-    user.verificationOtpExpires = otpExpiry;
-    await user.save();
-
-    // Send verification email with new OTP
-    try {
-      await sendVerificationOtpEmail(email, otp);
-      res.status(200).json({ message: 'Verification email sent. Please check your inbox.' });
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-      res.status(500).json({ error: 'Failed to send verification email. Please try again later.' });
-    }
-  } catch (error) {
-    console.error('Error in resend-verification-email:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 module.exports = router;

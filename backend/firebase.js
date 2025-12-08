@@ -9,8 +9,22 @@ function parseServiceAccountFromEnv() {
   // 2. Base64 encoded JSON
   // 3. Escaped newlines ("{\\n ... }")
   try {
-    return JSON.parse(raw);
+    let cleanRaw = raw.trim();
+    if (cleanRaw.startsWith('"') && cleanRaw.endsWith('"')) {
+      cleanRaw = cleanRaw.slice(1, -1);
+    }
+
+    // Strategy 1: Standard parse
+    try {
+      return JSON.parse(cleanRaw);
+    } catch (e1) {
+      // Strategy 2: Replace real newlines with escaped newlines (fixes copy-paste from .env)
+      // This handles the "Bad control character" error
+      const fixedNewlines = cleanRaw.replace(/\n/g, '\\n').replace(/\r/g, '');
+      return JSON.parse(fixedNewlines);
+    }
   } catch (err) {
+    // try base64
     // try base64
     try {
       const decoded = Buffer.from(raw, 'base64').toString('utf8');

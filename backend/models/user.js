@@ -45,14 +45,14 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   firebaseUid: { type: String, unique: true, sparse: true }, // added
   name: { type: String, required: true },
-  email: { 
+  email: {
     type: String,
     required: true,
     unique: true,
     match: /@mbu\.asia$/
   },
-  mbuEmail: { type: String, required: true, unique: true },
-  
+  mbuEmail: { type: String },
+
   // password not strictly required for Firebase users
   password: { type: String, minlength: 6 },
 
@@ -70,13 +70,13 @@ const userSchema = new mongoose.Schema({
 });
 
 // Hash password if modified
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-userSchema.methods.comparePassword = async function(password) {
+userSchema.methods.comparePassword = async function (password) {
   return bcrypt.compare(password, this.password);
 };
 

@@ -194,7 +194,7 @@ app.use("/api/admin", require("./routes/admin"));
 app.use("/api", require("./routes/notifications"));
 
 // ⭐ ADD THIS ⭐
-app.use("/api/otp", require("./routes/otp"));
+// app.use("/api/otp", require("./routes/otp")); // Removed OTP
 
 // 404
 app.use((req, res) => {

@@ -7,9 +7,23 @@ let adminInstance = null;
 try {
   const raw = process.env.FIREBASE_ADMIN_KEY;
   if (raw) {
-    // Some environments store private key with escaped newlines; fix that
-    const normalized = raw.replace(/\\n/g, '\n');
-    const serviceAccount = JSON.parse(normalized);
+    // Clean up key: remove surrounding quotes if present (common in .env)
+    let cleanRaw = raw.trim();
+    if (cleanRaw.startsWith('"') && cleanRaw.endsWith('"')) {
+      cleanRaw = cleanRaw.slice(1, -1);
+    }
+
+    // Fix newlines: convert literal \n to real newlines
+    const normalized = cleanRaw.replace(/\\n/g, '\n');
+
+    let serviceAccount;
+    try {
+      serviceAccount = JSON.parse(normalized);
+    } catch (e1) {
+      // Fallback: handle real newlines
+      const fixed = cleanRaw.replace(/\n/g, '\\n').replace(/\r/g, '');
+      serviceAccount = JSON.parse(fixed);
+    }
 
     if (!admin.apps.length) {
       admin.initializeApp({

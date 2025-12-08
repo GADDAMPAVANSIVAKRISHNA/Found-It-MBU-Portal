@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { auth, actionCodeSettings } from '../lib/firebase';
 import { sendEmailVerification } from 'firebase/auth';
 
 const EmailSent = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const email = params.get('email') || auth.currentUser?.email || '';
+  const location = useLocation();
+  const email = location.state?.email || params.get('email') || auth.currentUser?.email || '';
   const [resending, setResending] = useState(false);
-  const [message, setMessage] = useState('Verification email sent. Please check your inbox.');
+  const [message, setMessage] = useState('Verification email sent. Please check your inbox (including Spam).');
 
   useEffect(() => {
     const ping = async () => {

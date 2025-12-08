@@ -1,17 +1,21 @@
 const nodemailer = require("nodemailer");
 
-// Outlook SMTP using PORT 25 for Render free tier
+// Outlook SMTP using PORT 587 (STARTTLS)
+// Port 25 is often blocked on cloud providers like Render
 const transporter = nodemailer.createTransport({
   host: "smtp.office365.com",
-  port: 25,
-  secure: false, // no TLS on 25
+  port: 587,
+  secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
+    ciphers: 'SSLv3',
     rejectUnauthorized: false,
   },
+  connectionTimeout: 10000,
+  greetingTimeout: 5000
 });
 
 // verify SMTP connectivity
@@ -25,25 +29,31 @@ async function isEmailConfigured() {
   }
 }
 
-// SEND OTP EMAIL
-async function sendVerificationOtpEmail(email, otp) {
+
+
+// PASSWORD RESET EMAIL
+async function sendPasswordResetEmail(email, token) {
+  // Simple link for now, can be improved
+  const resetLink = `https://found-it-mbu.onrender.com/reset-password/${token}`; // Adjust domain as needed
+
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Your Found-It OTP Code",
+    subject: "Reset Your Password - MBU Portal",
     html: `
-      <h2>Hello!</h2>
-      <p>Your One-Time Password is:</p>
-      <h2 style="color:#2b5acf">${otp}</h2>
-      <p>This code will expire in 10 minutes.</p>
-      <br/>
-      <p>— Found-It Verification Team</p>
-    `,
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Password Reset Request</h2>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetLink}" style="padding: 10px 20px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
+        <p>If you didn't ask for this, ignore this email.</p>
+      </div>
+    `
   });
 }
 
 // EXPORT
 module.exports = {
-  sendVerificationOtpEmail,
+
+  sendPasswordResetEmail,
   isEmailConfigured,
 };

@@ -36,8 +36,10 @@ export const AuthProvider = ({ children }) => {
               },
             });
             if (response.ok) {
-              const userData = await response.json();
+              const userData = response.data;
               if (userData && userData.isVerified === false) {
+                // Verified in Firebase but not in DB? Or DB says false? 
+                // We sync status in login, but here if DB says false, we logout.
                 await signOut(auth);
                 setUser(null);
                 setToken(null);
@@ -46,7 +48,10 @@ export const AuthProvider = ({ children }) => {
               }
               setUser({ ...u, ...userData });
             } else {
-              setUser(u);
+              // If backend fetch fails (e.g. 404), logout user to be safe
+              console.warn('Backend profile fetch failed', response.status);
+              await signOut(auth);
+              setUser(null);
             }
           } catch (error) {
             setUser(u);
@@ -82,7 +87,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (profileRes.ok) {
-        const userData = await profileRes.json();
+        const userData = profileRes.data;
         if (userData && userData.isVerified === false) {
           await signOut(auth);
           const err = new Error('Email not verified');
