@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import axios from 'axios';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -14,7 +13,6 @@ const ForgotPassword = () => {
     setMessage('');
     setError('');
 
-    // Validate MBU email
     if (!email.endsWith('@mbu.asia')) {
       setError('Please use your @mbu.asia email address');
       return;
@@ -23,36 +21,42 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      // Send password reset email using Firebase
-      await sendPasswordResetEmail(auth, email);
-      
+      // 👉 use Backend Gmail + Firebase reset
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-password-reset`, {
+        email,
+      });
+
       setMessage('Password reset email sent! Please check your inbox and spam folder.');
-      setLoading(false);
       setEmail('');
     } catch (err) {
-      setLoading(false);
-      console.error('Password reset error:', err);
-      
-      if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email address.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address format.');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many attempts. Please try again later.');
-      } else {
-        setError(err.message || 'Failed to send reset email. Please try again.');
+      console.error('Password reset error:', err?.message);
+      let errorMsg = err?.response?.data?.error || 'Failed to send reset email. Please try again.';
+
+      // Friendly message for server config errors
+      if (errorMsg.includes('Invalid login') || errorMsg.includes('BadCredentials')) {
+        errorMsg = 'System Email Error: The server could not log in to the email account. Please contact the administrator to fix the backend configuration.';
       }
+
+      setError(errorMsg);
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="w-screen overflow-x-hidden min-h-screen py-8 sm:py-12 lg:py-16 px-3 sm:px-4 md:px-6 lg:px-8 flex items-center justify-center">
-      <div className="w-full max-w-sm sm:max-w-md p-4 sm:p-6 lg:p-8 bg-white rounded-lg shadow-lg">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6">Forgot Password</h2>
-        
+    <div
+      className="min-h-screen w-screen overflow-x-hidden bg-cover bg-center flex items-center justify-center px-3 sm:px-4 md:px-6 py-4"
+      style={{ backgroundImage: 'url(/assets/register-bg.jpg)' }}
+    >
+      <div className="w-full max-w-sm sm:max-w-md p-4 sm:p-6 lg:p-8 bg-white rounded-lg lg:rounded-xl shadow-lg">
+        <div className="flex justify-center mb-3 sm:mb-4">
+          <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-10 sm:h-12 lg:h-14 w-auto" />
+        </div>
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-center text-gray-800">Forgot Password</h2>
+
         {message && <div className="bg-green-100 text-green-700 p-2 sm:p-3 rounded mb-3 sm:mb-4 text-xs sm:text-sm">{message}</div>}
         {error && <div className="bg-red-100 text-red-700 p-2 sm:p-3 rounded mb-3 sm:mb-4 text-xs sm:text-sm">{error}</div>}
-        
+
         <p className="mb-4 sm:mb-6 text-gray-600 text-xs sm:text-sm">
           Enter your MBU email address and we'll send you a link to reset your password.
         </p>

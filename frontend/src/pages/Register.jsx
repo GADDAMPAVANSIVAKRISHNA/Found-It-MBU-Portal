@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { apiFetch } from '../utils/api';
-import { auth, actionCodeSettings } from '../lib/firebase';
-import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
+import axios from 'axios';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ const Register = () => {
 
   const handleChange = (key) => (e) => {
     setFormData({ ...formData, [key]: e.target.value });
-    if ((key === 'password' || key === 'confirmPassword')) {
+    if (key === 'password' || key === 'confirmPassword') {
       const pw = key === 'password' ? e.target.value : formData.password;
       const cpw = key === 'confirmPassword' ? e.target.value : formData.confirmPassword;
       setPasswordMatch(pw && cpw && pw === cpw);
@@ -35,7 +36,6 @@ const Register = () => {
     setError('');
     setSuccess('');
 
-    // Basic validations
     if (!formData.email.endsWith('@mbu.asia')) {
       setError('Please register with your @mbu.asia email');
       return;
@@ -44,28 +44,36 @@ const Register = () => {
       setError('Password must be at least 6 characters');
       return;
     }
-    if (formData.password !== formData.confirmPassword) {
+    if (!passwordMatch) {
       setError('Passwords do not match');
       return;
     }
-
     if (formData.contactNumber && !/^\d{10}$/.test(formData.contactNumber)) {
       setError('Contact number must be exactly 10 digits and contain only numbers');
       return;
     }
 
-    setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      // At this point Firebase user was created
-      await updateProfile(cred.user, { displayName: formData.name });
-      await sendEmailVerification(cred.user, actionCodeSettings);
+      setLoading(true);
 
-      // Create user in MongoDB immediately after Firebase creation
-      const registerRes = await apiFetch('/api/users/register', {
+      const cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+
+      await updateProfile(cred.user, { displayName: formData.name });
+
+      // 👉 send verification through backend (NOT Firebase)
+      try {
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-verification-email`, {
+          email: formData.email,
+        });
+      } catch (err) {
+        console.warn("Could not send verification email", err?.message);
+      }
+
+      // Create MongoDB user
+      await apiFetch('/api/users/register', {
         method: 'POST',
         body: JSON.stringify({
-          email: cred.user.email,
+          email: formData.email,
           name: formData.name,
           password: formData.password,
           branch: formData.branch,
@@ -75,16 +83,15 @@ const Register = () => {
         }),
       });
 
-      if (!registerRes.ok && registerRes.status !== 409) {
-        console.warn('Profile register failed', registerRes.status, registerRes.data);
-      }
-
-      // Do NOT keep the user logged in
-      try { await signOut(auth); } catch (e) { }
+      try { await signOut(auth); } catch { }
 
       setSuccess('Registration successful. Verification email sent.');
       setLoading(false);
-      navigate('/email-sent', { replace: true, state: { email: formData.email } });
+
+      navigate('/email-sent', {
+        replace: true,
+        state: { email: formData.email }
+      });
 
     } catch (err) {
       console.error('Register error', err);
@@ -94,7 +101,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen w-screen overflow-x-hidden bg-cover bg-center flex items-center justify-center px-3 sm:px-4 md:px-6 py-4" style={{ backgroundImage: 'url(/assets/register-bg.jpg)' }}>
+    <div className="min-h-screen w-screen overflow-x-hidden bg-cover bg-center flex items-center justify-center px-3 py-4" style={{ backgroundImage: 'url(/assets/register-bg.jpg)' }}>
       <div className="w-full max-w-sm sm:max-w-lg mx-auto p-4 sm:p-6 lg:p-8 bg-white bg-opacity-95 rounded-lg lg:rounded-xl shadow-lg">
         <div className="flex justify-center mb-3 sm:mb-4">
           <img src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png" alt="MBU" className="h-10 sm:h-12 lg:h-14 w-auto" />

@@ -90,15 +90,18 @@ const Dashboard = () => {
 
       if (!res.ok) {
         console.log("Profile update error:", res);
+        toast.error("Failed to update profile");
         return;
       }
 
       // Update UI
       setUserData({ ...userData, ...payload });
       setIsEditing(false);
+      toast.success("Profile updated successfully");
 
     } catch (error) {
       console.error("Error updating profile:", error);
+      toast.error("Error updating profile");
     }
   };
 

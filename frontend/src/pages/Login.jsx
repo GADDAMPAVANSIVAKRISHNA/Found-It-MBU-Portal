@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-hot-toast";
+import axios from "axios";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -9,7 +10,24 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+
+  useEffect(() => {
+    if (user && (user.isVerified || user.emailVerified)) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+
+  const handleResend = async () => {
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-verification-email`, {
+        email,
+      });
+      toast.success("Verification email sent!");
+    } catch (e) {
+      toast.error("Failed to resend verification email");
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -19,27 +37,28 @@ const Login = () => {
     try {
       const user = await login(email, password);
       toast.success("Login successful!");
+      // ✅ Redirect to home page (main page) after successful login
       navigate("/");
     } catch (err) {
       console.error(err);
-      const code = err?.code || '';
+      const code = err?.code || "";
 
-      if (code === 'email-not-verified') {
-        setError('Email not verified. Please check your inbox.');
-        toast.error('Please verify your email to login.');
-      } else if (code === 'profile-missing') {
-        setError('User profile missing. Please register again.');
-      } else if (code === 'auth/wrong-password') {
-        setError('Incorrect password. Please try again.');
-      } else if (code === 'auth/user-not-found') {
-        setError('User not registered with this email.');
-      } else if (code === 'auth/invalid-credential') {
-        setError('Invalid email or password.');
-      } else if (code === 'auth/too-many-requests') {
-        setError('Too many failed attempts. Please reset your password or try later.');
+      if (code === "email-not-verified") {
+        setError("Email not verified. Please check your inbox.");
+        toast.error("Please verify your email to login.");
+      } else if (code === "profile-missing") {
+        setError("User profile missing. Please register again.");
+      } else if (code === "auth/wrong-password") {
+        setError("Incorrect password. Please try again.");
+      } else if (code === "auth/user-not-found") {
+        setError("User not registered with this email.");
+      } else if (code === "auth/invalid-credential") {
+        setError("Invalid email or password.");
+      } else if (code === "auth/too-many-requests") {
+        setError("Too many failed attempts. Please reset your password or try later.");
       } else {
-        setError(err?.message || 'Login failed. Please try again.');
-        toast.error('Login failed');
+        setError(err?.message || "Login failed. Please try again.");
+        toast.error("Login failed");
       }
     } finally {
       setLoading(false);
@@ -60,6 +79,15 @@ const Login = () => {
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded-lg relative mb-3 sm:mb-4 text-sm sm:text-base" role="alert">
             <span className="block">{error}</span>
+
+            {error.includes("not verified") && (
+              <button
+                onClick={handleResend}
+                className="mt-2 underline text-blue-700 text-xs"
+              >
+                Resend verification email
+              </button>
+            )}
           </div>
         )}
 

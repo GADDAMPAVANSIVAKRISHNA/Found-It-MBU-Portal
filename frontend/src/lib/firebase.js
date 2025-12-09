@@ -14,8 +14,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Correct production URL
-const SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL;
+// Correct production URL or local fallback
+let SITE_URL = import.meta.env.VITE_PUBLIC_SITE_URL;
+
+if (!SITE_URL && typeof window !== 'undefined') {
+  SITE_URL = window.location.origin;
+}
 
 export const actionCodeSettings = {
   url: `${SITE_URL}/verify-email`,

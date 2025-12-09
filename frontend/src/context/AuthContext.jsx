@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Make firebase user available globally for apiFetch to use
   window.firebaseAuth = auth;
 
   useEffect(() => {
@@ -24,7 +23,6 @@ export const AuthProvider = ({ children }) => {
       try {
         if (u) {
           await u.reload();
-
           const idToken = await u.getIdToken();
           setToken(idToken);
 
@@ -35,11 +33,15 @@ export const AuthProvider = ({ children }) => {
                 'Authorization': `Bearer ${idToken}`,
               },
             });
+
+            // Prevent race condition: checks if user is still logged in to Firebase
+            if (!auth.currentUser || auth.currentUser.uid !== u.uid) {
+              return;
+            }
+
             if (response.ok) {
               const userData = response.data;
               if (userData && userData.isVerified === false) {
-                // Verified in Firebase but not in DB? Or DB says false? 
-                // We sync status in login, but here if DB says false, we logout.
                 await signOut(auth);
                 setUser(null);
                 setToken(null);
@@ -48,16 +50,15 @@ export const AuthProvider = ({ children }) => {
               }
               setUser({ ...u, ...userData });
             } else {
-              // If backend fetch fails (e.g. 404), logout user to be safe
-              console.warn('Backend profile fetch failed', response.status);
               await signOut(auth);
               setUser(null);
             }
           } catch (error) {
-            setUser(u);
+            if (auth.currentUser?.uid === u.uid) {
+              setUser(u);
+            }
           }
         } else {
-          // User logged out
           setUser(null);
           setToken(null);
         }
@@ -75,10 +76,22 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      // ✅ Set loading while login is in progress
+      setLoading(true);
+
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+      // 🚨 STEP-9 ENFORCE VERIFIED BEFORE LOGIN
       await userCredential.user.reload();
+      if (!userCredential.user.emailVerified) {
+        await signOut(auth);
+        const err = new Error('Email not verified');
+        err.code = 'email-not-verified';
+        throw err;
+      }
 
       const idToken = await userCredential.user.getIdToken();
+
       const profileRes = await apiFetch(`/api/users/by-email?email=${encodeURIComponent(userCredential.user.email)}`, {
         method: 'GET',
         headers: {
@@ -98,8 +111,10 @@ export const AuthProvider = ({ children }) => {
 
       setToken(idToken);
       setUser(userCredential.user);
+      setLoading(false); // ✅ Explicitly set loading to false after successful login
       return userCredential.user;
     } catch (error) {
+      setLoading(false); // ✅ Also set loading to false on error
       throw error;
     }
   };
@@ -126,7 +141,7 @@ export const AuthProvider = ({ children }) => {
           },
         });
         if (response.ok) {
-          const userData = await response.json();
+          const userData = response.data;
           setUser({ ...user, ...userData });
         }
       } catch (error) {

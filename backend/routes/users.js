@@ -93,4 +93,40 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// 🔹 UPDATE USER PROFILE
+router.put('/me', auth, async (req, res) => {
+  try {
+    const { name, branch, year, gender, contactNumber } = req.body;
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Update fields if provided
+    if (name) user.name = name;
+    if (branch) user.branch = branch;
+    if (year) user.year = year;
+    if (gender) user.gender = gender;
+    if (contactNumber) user.contactNumber = contactNumber;
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        branch: user.branch,
+        year: user.year,
+        contactNumber: user.contactNumber,
+        gender: user.gender,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

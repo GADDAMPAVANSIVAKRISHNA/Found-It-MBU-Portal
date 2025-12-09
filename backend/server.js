@@ -208,4 +208,24 @@ mongoose.connect(mongoURI)
   .catch((err) => console.error("❌ Mongo Error:", err.message));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Backend running on port ${PORT}`));
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Backend running on port ${PORT} (pid ${process.pid})`);
+});
+
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Kill the process using that port or change the PORT env variable.`);
+    // Optionally show processes (Windows)
+    try {
+      const { execSync } = require('child_process');
+      const out = execSync(`netstat -ano | findstr ":${PORT}"`).toString();
+      console.error('\nProcesses listening on that port:\n', out);
+    } catch (ex) {
+      // ignore
+    }
+    process.exit(1);
+  }
+
+  console.error('❌ Server error:', err);
+  process.exit(1);
+});

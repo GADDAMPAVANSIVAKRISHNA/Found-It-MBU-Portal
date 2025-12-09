@@ -35,7 +35,7 @@ const Navbar = () => {
               alt="MBU"
               className="h-8 sm:h-10 lg:h-12 w-auto object-contain"
             />
-            <span className="font-bold text-primary whitespace-nowrap text-sm sm:text-lg lg:text-xl tracking-wide hidden sm:inline">
+            <span className="font-bold text-primary whitespace-nowrap text-base sm:text-lg lg:text-xl tracking-wide">
               Found-It
             </span>
           </Link>
