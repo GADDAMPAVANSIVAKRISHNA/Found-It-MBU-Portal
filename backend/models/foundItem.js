@@ -22,6 +22,7 @@ const FoundItemSchema = new mongoose.Schema({
   date: { type: String, required: true },
   time: { type: String, default: '' },
   contactNumber: { type: String, required: true },
+  rollNumber: { type: String, default: '' },
   category: { type: String, required: true },
   subcategory: { type: String },
   imageUrl: { type: String },
@@ -34,5 +35,17 @@ const FoundItemSchema = new mongoose.Schema({
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now }
 });
+
+// Virtual for populating user details
+FoundItemSchema.virtual('user', {
+  ref: 'User',
+  localField: 'userId',
+  foreignField: '_id',
+  justOne: true
+});
+
+FoundItemSchema.set('toObject', { virtuals: true });
+FoundItemSchema.set('toJSON', { virtuals: true });
+
 
 module.exports = mongoose.model('FoundItem', FoundItemSchema);

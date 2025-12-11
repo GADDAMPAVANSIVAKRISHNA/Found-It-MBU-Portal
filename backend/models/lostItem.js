@@ -23,6 +23,7 @@ const LostItemSchema = new mongoose.Schema({
   date: { type: String, required: true },
   time: { type: String, default: '' },
   contactNumber: { type: String, required: false, default: '' },
+  rollNumber: { type: String, default: '' },
   category: { type: String, required: true },
   subcategory: { type: String },
   imageUrl: { type: String },
@@ -36,5 +37,17 @@ const LostItemSchema = new mongoose.Schema({
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now }
 });
+
+// Virtual for populating user details
+LostItemSchema.virtual('user', {
+  ref: 'User',
+  localField: 'userId',
+  foreignField: '_id',
+  justOne: true
+});
+
+LostItemSchema.set('toObject', { virtuals: true });
+LostItemSchema.set('toJSON', { virtuals: true });
+
 
 module.exports = mongoose.model('LostItem', LostItemSchema);

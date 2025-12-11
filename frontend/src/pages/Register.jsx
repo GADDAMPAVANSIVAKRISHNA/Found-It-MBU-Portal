@@ -62,7 +62,7 @@ const Register = () => {
 
       // 👉 send verification through backend (NOT Firebase)
       try {
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-verification-email`, {
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-verification`, {
           email: formData.email,
         });
       } catch (err) {

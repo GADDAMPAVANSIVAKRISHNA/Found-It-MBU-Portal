@@ -75,6 +75,7 @@ async function createLostHandler(req, res) {
       date: req.body.dateLost || req.body.date || req.body.dateLostISO || new Date(),
       imageUrl,
       status: req.body.status || 'Active',
+      rollNumber: req.body.rollNumber || '',
       userId: req.userId || null,
       userName: req.user?.name || req.body.userName || '',
       userContact: req.user?.contactNumber || req.body.contactNumber || req.body.mobile || req.body.contact || '',
@@ -144,6 +145,7 @@ async function createFoundHandler(req, res) {
       imageUrl,
       status: req.body.status || 'Active',
       whereKept: req.body.whereKept || req.body.where_is_kept || '', // optional
+      rollNumber: req.body.rollNumber || '',
       userId: req.userId || null,
       userName: req.user?.name || req.body.userName || '',
       userContact: req.user?.contactNumber || req.body.contactNumber || req.body.contact || '',
@@ -227,12 +229,14 @@ router.get('/items', async (req, res) => {
         .sort(sortOpt)
         .skip(skip)
         .limit(limitNum)
+        .populate('user', 'email')
         .lean(),
       LostItem.countDocuments({ ...commonQuery, approvalStatus: { $ne: 'removed' } }),
       FoundItem.find({ ...commonQuery, approvalStatus: { $ne: 'removed' } })
         .sort(sortOpt)
         .skip(skip)
         .limit(limitNum)
+        .populate('user', 'email')
         .lean(),
       FoundItem.countDocuments({ ...commonQuery, approvalStatus: { $ne: 'removed' } })
     ]);
@@ -250,10 +254,11 @@ router.get('/items', async (req, res) => {
       date: i.date || i.dateLost || i.createdAt,
       imageUrl: i.imageUrl || i.image_url || '',
       status: i.status || 'Active',
+      rollNumber: i.rollNumber || '',
       userId: i.userId || null,
       userName: i.userName || '',
       userContact: i.userContact || '',
-      userEmail: i.userEmail || '',
+      userEmail: (i.user && i.user.email) || i.userEmail || '',
       createdAt: i.createdAt
     }));
 
@@ -269,10 +274,11 @@ router.get('/items', async (req, res) => {
       date: i.date || i.dateFound || i.createdAt,
       imageUrl: i.imageUrl || i.image_url || '',
       status: i.status || 'Active',
+      rollNumber: i.rollNumber || '',
       userId: i.userId || null,
       userName: i.userName || '',
       userContact: i.userContact || '',
-      userEmail: i.userEmail || '',
+      userEmail: (i.user && i.user.email) || i.userEmail || '',
       createdAt: i.createdAt
     }));
 

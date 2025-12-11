@@ -183,7 +183,7 @@ router.post('/lost', maybeAuth, upload.single('image'), async (req, res) => {
     const imageUrl = await buildImageUrl(req.file);
     const {
       title, description, category, subcategory, location, approximateLocation,
-      date, dateLost, time, approximateTime, contactNumber, email, whereKept
+      date, dateLost, time, approximateTime, contactNumber, email, whereKept, rollNumber
     } = req.body;
     const doc = new LostItem({
       title,
@@ -194,6 +194,7 @@ router.post('/lost', maybeAuth, upload.single('image'), async (req, res) => {
       date: dateLost || date || new Date().toISOString().slice(0, 10),
       time: approximateTime || time || '',
       contactNumber,
+      rollNumber: rollNumber || '',
       contactPreference: req.body.contactPreference || '',
       imageUrl,
       userId: req.userId,
@@ -218,7 +219,7 @@ router.post('/found', maybeAuth, upload.single('image'), async (req, res) => {
     const imageUrl = await buildImageUrl(req.file);
     const {
       title, description, category, subcategory, location,
-      date, time, contactNumber, email, whereKept
+      date, time, contactNumber, email, whereKept, rollNumber
     } = req.body;
     const doc = new FoundItem({
       title,
@@ -229,6 +230,7 @@ router.post('/found', maybeAuth, upload.single('image'), async (req, res) => {
       date: date || new Date().toISOString().slice(0, 10),
       time: time || '',
       contactNumber,
+      rollNumber: rollNumber || '',
       imageUrl,
       userId: req.userId,
       userName: req.user?.name || '',
@@ -262,8 +264,8 @@ router.get('/items', async (req, res) => {
     if (endDate) dateQuery.createdAt = { ...(dateQuery.createdAt || {}), $lte: new Date(endDate) };
 
     const [lostDocs, foundDocs] = await Promise.all([
-      LostItem.find({ ...common, ...dateQuery }).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
-      FoundItem.find({ ...common, ...dateQuery }).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      LostItem.find({ ...common, ...dateQuery }).populate('user', 'email').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      FoundItem.find({ ...common, ...dateQuery }).populate('user', 'email').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
     ]);
 
     const mapLost = lostDocs.map(i => ({
@@ -279,7 +281,9 @@ router.get('/items', async (req, res) => {
       status: i.status || 'Active',
       userName: i.userName || '',
       userContact: i.userContact || '',
-      userEmail: i.userEmail || '',
+      userEmail: (i.user && i.user.email) ? i.user.email : (i.userEmail || ''),
+      userEmail: (i.user && i.user.email) ? i.user.email : (i.userEmail || ''),
+      rollNumber: i.rollNumber || '',
       createdAt: i.createdAt,
     }));
 
@@ -296,7 +300,9 @@ router.get('/items', async (req, res) => {
       status: i.status || 'Active',
       userName: i.userName || '',
       userContact: i.userContact || '',
-      userEmail: i.userEmail || '',
+      userEmail: (i.user && i.user.email) ? i.user.email : (i.userEmail || ''),
+      userEmail: (i.user && i.user.email) ? i.user.email : (i.userEmail || ''),
+      rollNumber: i.rollNumber || '',
       createdAt: i.createdAt,
     }));
 
@@ -591,8 +597,8 @@ router.get('/user/stats', auth, async (req, res) => {
 //     }
 
 //     const [lostDocs, foundDocs] = await Promise.all([
-//       LostItem.find(commonQuery).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
-//       FoundItem.find(commonQuery).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean()
+//       LostItem.find(commonQuery).populate('user', 'email').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+//       FoundItem.find(commonQuery).populate('user', 'email').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean()
 //     ]);
 
 //     const mapLost = lostDocs.map(i => ({
@@ -608,7 +614,7 @@ router.get('/user/stats', auth, async (req, res) => {
 //       status: i.status || 'Active',
 //       userName: i.userName || '',
 //       userContact: i.userContact || '',
-//       userEmail: i.userEmail || '',
+//       userEmail: (i.user && i.user.email) ? i.user.email : (i.userEmail || ''),
 //       createdAt: i.createdAt
 //     }));
 

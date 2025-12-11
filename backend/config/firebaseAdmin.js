@@ -1,63 +1,38 @@
-// // backend/config/firebaseAdmin.js
-// // CommonJS-friendly Firebase Admin initializer with graceful fallback.
-// const admin = require('firebase-admin');
 
-// let adminInstance = null;
+const admin = require('firebase-admin');
 
-// try {
-//   const raw = process.env.FIREBASE_ADMIN_KEY;
-//   if (raw) {
-//     // Clean up key: remove surrounding quotes if present (common in .env)
-//     let cleanRaw = raw.trim();
-//     if (cleanRaw.startsWith('"') && cleanRaw.endsWith('"')) {
-//       cleanRaw = cleanRaw.slice(1, -1);
-//     }
-
-//     // Fix newlines: convert literal \n to real newlines
-//     const normalized = cleanRaw.replace(/\\n/g, '\n');
-
-//     let serviceAccount;
-//     try {
-//       serviceAccount = JSON.parse(normalized);
-//     } catch (e1) {
-//       // Fallback: handle real newlines
-//       const fixed = cleanRaw.replace(/\n/g, '\\n').replace(/\r/g, '');
-//       serviceAccount = JSON.parse(fixed);
-//     }
-
-//     if (!admin.apps.length) {
-//       admin.initializeApp({
-//         credential: admin.credential.cert(serviceAccount),
-//       });
-//     }
-//     adminInstance = admin;
-//     console.log('✅ Firebase admin initialized');
-//   } else {
-//     console.warn('⚠️ FIREBASE_ADMIN_KEY not set; Firebase admin will be disabled');
-//   }
-// } catch (err) {
-//   console.warn('⚠️ Failed to initialize Firebase admin:', err && err.message ? err.message : err);
-//   // Leave adminInstance as null; callers should handle absence
-// }
-
-// module.exports = adminInstance;
-
-
-// backend/firebaseAdmin.js
-const admin = require("firebase-admin");
+function parseServiceAccount() {
+  const raw = process.env.FIREBASE_ADMIN_KEY || process.env.FIREBASE_ADMIN_JSON;
+  if (raw) {
+    try {
+      const normalized = raw.replace(/\\n/g, '\n');
+      return JSON.parse(normalized);
+    } catch (_) {}
+  }
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey) privateKey = privateKey.replace(/\\n/g, '\n');
+  if (projectId && clientEmail && privateKey) {
+    return { projectId, clientEmail, privateKey };
+  }
+  return null;
+}
 
 if (!admin.apps.length) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-
-    console.log("Firebase Admin initialized 🔥");
-  } catch (err) {
-    console.error("Firebase Admin init error:", err.message);
+  const svc = parseServiceAccount();
+  if (svc) {
+    try {
+      admin.initializeApp({ credential: admin.credential.cert(svc) });
+      console.log('✅ Firebase admin initialized');
+    } catch (err) {
+      console.error('❌ Firebase admin init error:', err && err.message ? err.message : err);
+    }
+  } else {
+    console.warn('⚠️ Firebase admin not configured. Set FIREBASE_ADMIN_KEY or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY');
   }
 }
 
 module.exports = admin;
+
+

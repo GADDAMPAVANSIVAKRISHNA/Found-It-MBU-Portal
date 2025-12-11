@@ -20,6 +20,7 @@ const ReportLost = () => {
     contactPreference: 'mobile',
     email: '',
     mobile: '',
+    rollNumber: '',
     whereKept: 'With me',
     otherLocation: '',
   });
@@ -92,6 +93,7 @@ const ReportLost = () => {
       data.append('date', formData.dateLost);
       data.append('contactNumber', formData.mobile);
       data.append('email', formData.email);
+      data.append('rollNumber', formData.rollNumber);
       data.append('contactPreference', formData.contactPreference);
       data.append('whereKept', formData.whereKept);
       data.append('otherLocation', formData.otherLocation || '');
@@ -257,6 +259,17 @@ const ReportLost = () => {
             <div className="bg-gray-50 p-3 sm:p-4 lg:p-6 rounded-lg">
               <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Contact Information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Roll Number</label>
+                  <input
+                    type="text"
+                    name="rollNumber"
+                    value={formData.rollNumber}
+                    onChange={handleChange}
+                    placeholder="e.g. 23102A010664"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
+                  />
+                </div>
 
                 <div>
                   <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Mobile</label>

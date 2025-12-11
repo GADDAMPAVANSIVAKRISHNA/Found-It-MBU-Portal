@@ -9,7 +9,7 @@ const Gallery = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [contactItem, setContactItem] = useState(null);
-  const [reporterRoll, setReporterRoll] = useState("");
+
 
   const [localSearch, setLocalSearch] = useState("");
   const [filters, setFilters] = useState({
@@ -32,38 +32,7 @@ const Gallery = () => {
     fetchItems();
   }, [page, filters]);
 
-  useEffect(() => {
-    const fetchRegisteredEmail = async () => {
-      if (!contactItem) {
-        setReporterRoll("");
-        return;
-      }
 
-      try {
-        // Fetch user's registered email from their account
-        const userId = contactItem.userId;
-        if (userId) {
-          const res = await apiFetch(`/api/users/${userId}`, { method: "GET" });
-          if (res.ok && res.data && res.data.email) {
-            // Extract roll number from registered email (part before @)
-            const registeredEmail = res.data.email || "";
-            const rollNumber = registeredEmail.split("@")[0] || "";
-            setReporterRoll(rollNumber);
-            return;
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-
-      // Fallback: use email from item if user fetch fails
-      const email = contactItem.userEmail || "";
-      const rollNumber = email.split("@")[0] || "";
-      setReporterRoll(rollNumber);
-    };
-
-    fetchRegisteredEmail();
-  }, [contactItem]);
 
   const fetchItems = async () => {
     try {
@@ -322,44 +291,50 @@ const Gallery = () => {
         )}
 
         {/* CONTACT MODAL */}
-        {contactItem && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6">
-              <div className="flex justify-between items-center mb-3 sm:mb-4">
-                <h3 className="text-base sm:text-lg lg:text-xl font-bold">Contact Details</h3>
-                <button onClick={() => setContactItem(null)} className="text-lg hover:text-gray-600">✕</button>
-              </div>
+        {contactItem && (() => {
+          const contactEmail = contactItem?.userEmail || contactItem?.email || "";
+          const emailLocal = (contactEmail || "").split("@")[0];
+          const rollNumber = emailLocal || "";
 
-              <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                <p>
-                  <strong>Name:</strong> {reporterRoll || "N/A"}
-                </p>
-                <p>
-                  <strong>Mobile:</strong> {contactItem.userContact || "N/A"}
-                </p>
-                <p>
-                  <strong>Email:</strong> {contactItem.userEmail || "N/A"}
-                </p>
+          return (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6">
+                <div className="flex justify-between items-center mb-3 sm:mb-4">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-bold">Contact Details</h3>
+                  <button onClick={() => setContactItem(null)} className="text-lg hover:text-gray-600">✕</button>
+                </div>
 
-                <hr className="my-2" />
+                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                  <p>
+                    <strong>Roll Number:</strong> {rollNumber || contactItem.rollNumber || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Mobile:</strong> {contactItem.userContact || contactItem.phone || contactItem.contactNumber || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Email:</strong> {contactEmail || "N/A"}
+                  </p>
 
-                <p>
-                  <strong>Item:</strong> {contactItem.title}
-                </p>
-                <p className="text-gray-600">{contactItem.description}</p>
-              </div>
+                  <hr className="my-2" />
 
-              <div className="mt-4 flex">
-                <button
-                  className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm hover:bg-gray-50 transition"
-                  onClick={() => setContactItem(null)}
-                >
-                  Close
-                </button>
+                  <p>
+                    <strong>Item:</strong> {contactItem.title}
+                  </p>
+                  <p className="text-gray-600">{contactItem.description}</p>
+                </div>
+
+                <div className="mt-4 flex">
+                  <button
+                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm hover:bg-gray-50 transition"
+                    onClick={() => setContactItem(null)}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
