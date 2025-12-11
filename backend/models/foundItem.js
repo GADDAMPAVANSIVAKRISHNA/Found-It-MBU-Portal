@@ -31,8 +31,10 @@ const FoundItemSchema = new mongoose.Schema({
   userEmail: { type: String },
   userContact: { type: String },
   whereKept: { type: String, default: '' },
-  status: { type: String, enum: ['Active', 'Claimed', 'Returned'], default: 'Active' },
+  status: { type: String, enum: ['Active', 'Claimed', 'Returned', 'Unclaimed'], default: 'Unclaimed' },
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  badge: { type: String, default: null },
+  confirmedBy: { type: String, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 

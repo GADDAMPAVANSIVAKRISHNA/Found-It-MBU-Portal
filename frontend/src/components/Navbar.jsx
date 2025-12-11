@@ -48,6 +48,12 @@ const Navbar = () => {
               {isVerifiedUser && (
                 <>
                   <Link to="/gallery" className="text-gray-700 hover:text-blue-600 font-medium text-sm transition">Browse</Link>
+                  <Link to="/report" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 transition shadow-md btn-float font-bold text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 text-purple-200">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Report
+                  </Link>
                   <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 font-medium text-sm transition">Dashboard</Link>
                   <NotificationsBell />
                 </>

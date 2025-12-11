@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { apiFetch } from "../utils/api";
+import { apiFetch, BASE_URL } from "../utils/api";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 const Gallery = () => {
   const [items, setItems] = useState([]);
@@ -9,6 +10,7 @@ const Gallery = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [contactItem, setContactItem] = useState(null);
+  const { user, token } = useAuth();
 
 
   const [localSearch, setLocalSearch] = useState("");
@@ -81,6 +83,43 @@ const Gallery = () => {
       toast.error("Failed to load items");
       setItems([]);
       setLoading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    try {
+      if (!contactItem || !contactItem._id) {
+        toast.error("Item ID missing");
+        return;
+      }
+
+      const rawId = String(contactItem._id);
+      const itemId = rawId.includes("_") ? rawId.split("_")[1] : rawId;
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${BASE_URL}/items/${itemId}/confirm`, {
+        method: "PUT",
+        headers,
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const msg = data?.message || "Error confirming item";
+        throw new Error(msg);
+      }
+
+      toast.success("Thank you! Finder awarded a badge.");
+      setContactItem(null);
+      fetchItems();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Error confirming item");
     }
   };
 
@@ -296,6 +335,10 @@ const Gallery = () => {
           const emailLocal = (contactEmail || "").split("@")[0];
           const rollNumber = emailLocal || "";
 
+          const isFoundItem = contactItem.itemType === "Found" || String(contactItem._id || "").startsWith("found_");
+          const statusLower = (contactItem.status || "").toLowerCase();
+          const canConfirm = isFoundItem && statusLower !== "returned" && statusLower !== "claimed";
+
           return (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50">
               <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6">
@@ -322,6 +365,17 @@ const Gallery = () => {
                   </p>
                   <p className="text-gray-600">{contactItem.description}</p>
                 </div>
+
+                {canConfirm && (
+                  <div className="mt-3">
+                    <button
+                      className="w-full bg-indigo-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-indigo-700 transition"
+                      onClick={handleConfirm}
+                    >
+                      This item belongs to me
+                    </button>
+                  </div>
+                )}
 
                 <div className="mt-4 flex">
                   <button

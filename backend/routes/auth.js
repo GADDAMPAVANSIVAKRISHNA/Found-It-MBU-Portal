@@ -28,24 +28,26 @@ router.post('/register', async (req, res) => {
       displayName: name,
     });
 
-    // 2) Store in Mongo
-    const user = await User.create({
-      name,
-      email,
-      password,
-      branch,
-      year,
-      contactNumber,
-      firebaseUid: fbUser.uid,
-      isVerified: false,
-    });
-
-    // 3) Send Gmail verification link
-    const link = await generateVerificationLink(email);
-    await sendVerificationEmail(email, link);
+    const [user, link] = await Promise.all([
+      User.create({
+        name,
+        email,
+        password,
+        branch,
+        year,
+        contactNumber,
+        firebaseUid: fbUser.uid,
+        isVerified: false,
+      }),
+      generateVerificationLink(email)
+    ]);
 
     res.status(201).json({
       message: "Registered. Check your @mbu.asia email for verification link.",
+    });
+
+    sendVerificationEmail(email, link).catch(err => {
+      console.error("VERIFICATION EMAIL ERROR:", err);
     });
 
   } catch (err) {

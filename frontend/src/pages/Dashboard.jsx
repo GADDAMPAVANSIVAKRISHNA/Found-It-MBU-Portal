@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { apiFetch } from "../utils/api";
+import { apiFetch, BASE_URL } from "../utils/api";
 import { auth } from "../lib/firebase";
 import "./Dashboard.css";
 
@@ -11,6 +11,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
+  const [isEditingItem, setIsEditingItem] = useState(false);
+  const [editItemData, setEditItemData] = useState({});
   const [stats, setStats] = useState({ lost: 0, found: 0 });
   const [items, setItems] = useState([]);
 
@@ -43,7 +45,10 @@ const Dashboard = () => {
       const userItems = [
         ...(res.data.myLostItems || []).map((it) => ({ ...it, itemType: "Lost" })),
         ...(res.data.myFoundItems || []).map((it) => ({ ...it, itemType: "Found" }))
-      ];
+      ].map((it) => ({
+        ...it,
+        _id: typeof it._id === 'string' ? it._id : (it._id && it._id.toString ? it._id.toString() : String(it._id)),
+      }));
 
       // Sort recent first
       userItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -102,6 +107,55 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Error updating profile");
+    }
+  };
+
+  const handleEditItemClick = (item) => {
+    setEditItemData({
+      ...item,
+      _id: typeof item._id === 'string' ? item._id : (item._id && item._id.toString ? item._id.toString() : String(item._id)),
+      // Ensure date is YYYY-MM-DD
+      date: item.date ? new Date(item.date).toISOString().split('T')[0] : '',
+      // Map legacy fields if needed
+      contactNumber: item.userContact || item.contactNumber || '',
+    });
+    setIsEditingItem(true);
+  };
+
+  const handleSaveItemChanges = async () => {
+    try {
+      if (!editItemData._id) {
+        toast.error("Item ID is missing");
+        return;
+      }
+
+      const rawId = String(editItemData._id);
+      const cleanId = rawId.includes('_') ? rawId.split('_')[1] : rawId;
+
+      const token = auth.currentUser ? await auth.currentUser.getIdToken(true) : null;
+
+      const response = await fetch(`${BASE_URL}/items/${cleanId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(editItemData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const msg = data?.message || "Failed to update item";
+        throw new Error(msg);
+      }
+
+      toast.success("Item updated successfully!");
+      setIsEditingItem(false);
+      await fetchDashboardData();
+
+    } catch (error) {
+      console.error(error);
+      toast.error("Error updating item");
     }
   };
 
@@ -191,6 +245,7 @@ const Dashboard = () => {
                   <th className="py-2 px-3">Reporter</th>
                   <th className="py-2 px-3">Status</th>
                   <th className="py-2 px-3">Badge</th>
+                  <th className="py-2 px-3">Confirmed By</th>
                   <th className="py-2 px-3">Action</th>
                 </tr>
               </thead>
@@ -198,7 +253,7 @@ const Dashboard = () => {
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-4 text-gray-500">
+                    <td colSpan="7" className="text-center py-4 text-gray-500">
                       No items reported yet.
                     </td>
                   </tr>
@@ -214,25 +269,37 @@ const Dashboard = () => {
                       <td className="py-2 px-3 text-gray-600">{it.userEmail || userData?.email || "—"}</td>
                       <td className="py-2 px-3">
                         <span className="px-2 py-1 rounded text-xs border bg-gray-50 text-gray-600 border-gray-200 uppercase">
-                          {it.status || "Active"}
+                          {it.status === "Active" ? "Active" : it.status || "Active"}
                         </span>
                       </td>
                       <td className="py-2 px-3">
-                        {it.badge === "awarded" ? (
+                        {it.badge ? (
                           <span className="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800 border border-yellow-200 font-bold flex items-center w-max gap-1">
-                            🏅 Awarded
+                            🏅 {it.badge}
                           </span>
                         ) : "—"}
                       </td>
+                      <td className="py-2 px-3 text-gray-600">
+                        {it.confirmedBy || "—"}
+                      </td>
                       <td className="py-2 px-3">
                         {(it.status || 'Active') === 'Active' ? (
-                          <button
-                            onClick={() => handleDelete(it._id, it.status || 'Active')}
-                            className="hover:scale-110 transition-transform p-1"
-                            title="Delete Item"
-                          >
-                            <img src="/delete_icon.png" alt="Delete" className="w-5 h-5 object-contain" />
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditItemClick(it)}
+                              className="hover:scale-110 transition-transform p-1"
+                              title="Edit Item"
+                            >
+                              <img src="/edit_icon.png" alt="Edit" className="w-5 h-5 object-contain" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(it._id, it.status || 'Active')}
+                              className="hover:scale-110 transition-transform p-1"
+                              title="Delete Item"
+                            >
+                              <img src="/delete_icon.png" alt="Delete" className="w-5 h-5 object-contain" />
+                            </button>
+                          </div>
                         ) : (
                           <span className="opacity-50 cursor-not-allowed inline-block p-1" title="Cannot delete">
                             <img src="/delete_icon.png" alt="Delete" className="w-5 h-5 object-contain grayscale" />
@@ -352,8 +419,119 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Item Modal */}
+      {isEditingItem && (
+        <div
+          className="modal-overlay"
+          onClick={() => setIsEditingItem(false)}
+        >
+          <div
+            className="modal-content w-full max-w-md sm:max-w-lg lg:max-w-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>Edit Report</h2>
+              <button className="modal-close" onClick={() => setIsEditingItem(false)}>✕</button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group mb-2">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={editItemData.title || ""}
+                  onChange={(e) => setEditItemData({ ...editItemData, title: e.target.value })}
+                  className="w-full border rounded p-2"
+                />
+              </div>
+
+              <div className="form-group mb-2">
+                <label>Description</label>
+                <textarea
+                  value={editItemData.description || ""}
+                  onChange={(e) => setEditItemData({ ...editItemData, description: e.target.value })}
+                  className="w-full border rounded p-2"
+                  rows="3"
+                />
+              </div>
+
+              <div className="modal-row grid grid-cols-2 gap-2">
+                <div className="form-group">
+                  <label>Location</label>
+                  <input
+                    type="text"
+                    value={editItemData.location || ""}
+                    onChange={(e) => setEditItemData({ ...editItemData, location: e.target.value })}
+                    className="w-full border rounded p-2"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    value={editItemData.date || ""}
+                    onChange={(e) => setEditItemData({ ...editItemData, date: e.target.value })}
+                    className="w-full border rounded p-2"
+                  />
+                </div>
+              </div>
+
+              <div className="modal-row grid grid-cols-2 gap-2 mt-2">
+                <div className="form-group">
+                  <label>Category</label>
+                  <select
+                    value={editItemData.category || "Others"}
+                    onChange={(e) => setEditItemData({ ...editItemData, category: e.target.value })}
+                    className="w-full border rounded p-2"
+                  >
+                    <option value="Electronics">Electronics</option>
+                    <option value="Books">Books</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Keys">Keys</option>
+                    <option value="Wallet">Wallet</option>
+                    <option value="Others">Others</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Contact Number</label>
+                  <input
+                    type="text"
+                    value={editItemData.contactNumber || ""}
+                    onChange={(e) => setEditItemData({ ...editItemData, contactNumber: e.target.value })}
+                    className="w-full border rounded p-2"
+                  />
+                </div>
+              </div>
+
+              {editItemData.itemType === 'Found' && (
+                <div className="form-group mt-2">
+                  <label>Where Kept / Submitted?</label>
+                  <input
+                    type="text"
+                    value={editItemData.whereKept || ""}
+                    onChange={(e) => setEditItemData({ ...editItemData, whereKept: e.target.value })}
+                    className="w-full border rounded p-2"
+                    placeholder="e.g. Security Office"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer mt-4">
+              <button className="btn-cancel mr-2" onClick={() => setIsEditingItem(false)}>
+                Cancel
+              </button>
+              <button className="btn-save" onClick={handleSaveItemChanges}>
+                Update Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 export default Dashboard;

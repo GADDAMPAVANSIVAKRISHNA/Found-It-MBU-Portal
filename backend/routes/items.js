@@ -594,4 +594,136 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// -----------------------------
+// UPDATE /:id
+// Only owner can update.
+// -----------------------------
+// CONFIRM ITEM (Badge Award)
+// -----------------------------
+router.put('/:id/confirm', auth, async (req, res) => {
+  try {
+    const rawId = req.params.id;
+    const cleanId = rawId.includes('_') ? rawId.split('_')[1] : rawId;
+
+    if (!mongoose.Types.ObjectId.isValid(cleanId)) {
+      return res.status(400).json({ message: "Invalid Item ID" });
+    }
+
+    // Try to find in FoundItem (since this feature is for found items)
+    let item = await FoundItem.findById(cleanId);
+
+    // If not found, check LostItem (just in case)
+    if (!item) {
+      item = await LostItem.findById(cleanId);
+    }
+
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    // Get roll number from user (derive from email if not present)
+    // Assuming confirmedBy should be the person confirming (the Lost Person)
+    const rollNumber = req.user.rollNumber || (req.user.email ? req.user.email.split('@')[0] : 'Unknown');
+
+    item.badge = "Keep Doing Great!";
+    item.confirmedBy = rollNumber;
+    item.status = "Returned";
+
+    await item.save();
+    return res.json({ message: "Item successfully confirmed", item });
+
+  } catch (err) {
+    console.error("Confirm error:", err);
+    res.status(500).json({ message: err.message || "Server error" });
+  }
+});
+
+// -----------------------------
+// -----------------------------
+// UPDATE ITEM (Unified Route)
+// -----------------------------
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const rawId = req.params.id;
+    const { itemType } = req.body;
+    let doc = null;
+    let model = null;
+
+    console.log(`📝 PUT /items/${rawId} request by user ${req.userId}. Type: ${itemType}`);
+
+    // Helper to validate ObjectId
+    const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+    const cleanId = rawId.includes('_') ? rawId.split('_')[1] : rawId;
+
+    if (!isValidId(cleanId)) {
+      return res.status(400).json({ message: "Invalid Item ID format" });
+    }
+
+    // Determine model
+    if (itemType === 'Lost') {
+      model = LostItem;
+      doc = await model.findById(cleanId);
+    } else if (itemType === 'Found') {
+      model = FoundItem;
+      doc = await model.findById(cleanId);
+    } else {
+      // Fallback: Check both
+      model = LostItem;
+      doc = await model.findById(cleanId);
+      if (!doc) {
+        model = FoundItem;
+        doc = await model.findById(cleanId);
+      }
+    }
+
+    if (!doc) {
+      console.log(`❌ Item ${cleanId} not found`);
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Check ownership
+    const docUserId = doc.userId ? doc.userId.toString() : '';
+    const reqUserId = req.userId ? req.userId.toString() : '';
+    const docEmail = (doc.userEmail || (doc.user && doc.user.email) || '').toString().toLowerCase();
+    const reqEmail = (req.user && req.user.email ? req.user.email : '').toString().toLowerCase();
+
+    const ownsById = !!docUserId && !!reqUserId && docUserId === reqUserId;
+    const ownsByEmail = !!docEmail && !!reqEmail && docEmail === reqEmail;
+
+    if (!ownsById && !ownsByEmail) {
+      return res.status(403).json({ message: "You are not authorized to update this item" });
+    }
+
+    // Update Fields
+    const { title, description, location, date, contactNumber, category, subcategory, whereKept } = req.body;
+
+    if (title) doc.title = title;
+    if (description) doc.description = description;
+    if (location) doc.location = location;
+    if (date) {
+      doc.date = date;
+      // Handle polymorphic date fields
+      if (doc.dateLost !== undefined) doc.dateLost = date;
+      if (doc.dateFound !== undefined) doc.dateFound = date;
+    }
+    if (contactNumber) {
+      doc.contactNumber = contactNumber;
+      doc.userContact = contactNumber;
+    }
+    if (category) doc.category = category;
+    if (subcategory) doc.subcategory = subcategory;
+    if (whereKept !== undefined) doc.whereKept = whereKept;
+
+    await doc.save();
+    console.log(`✅ Item ${doc._id} updated successfully`);
+
+    res.json({
+      message: "Item updated successfully",
+      updatedItem: doc,
+    });
+
+  } catch (err) {
+    console.error('🔥 PUT /items/:id error:', err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;

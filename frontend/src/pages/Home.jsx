@@ -17,16 +17,7 @@ const Home = () => {
           </div>
         </div>
         {/* Action buttons shown only when logged in */}
-        {user && (
-          <div className="flex justify-center px-2">
-            <Link
-              to="/report"
-              className="px-4 sm:px-6 py-2 sm:py-3 lg:py-4 rounded-lg text-sm sm:text-base lg:text-lg font-bold bg-red-600 text-white shadow-lg transition hover:bg-red-700 hover:shadow-xl btn-float inline-block"
-            >
-              ➕ Report
-            </Link>
-          </div>
-        )}
+        {/* Action buttons removed as requested - moved to Navbar */}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-10 sm:mt-14 lg:mt-16">
