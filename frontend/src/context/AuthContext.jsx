@@ -20,53 +20,58 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      try {
-        if (u) {
+      if (u) {
+        // Optimistic UI: Set user immediately to resolve "Checking login..." faster
+        setUser(u);
+        setLoading(false);
+
+        try {
+          // Background: Fetch latest token & profile details
           await u.reload();
+
+          /* 
+             NOTE: We don't await the backend fetch to block the UI.
+             We let the user see the app while we verify/enrich their profile.
+          */
           const idToken = await u.getIdToken();
           setToken(idToken);
 
-          try {
-            const response = await apiFetch(`/api/users/by-email?email=${encodeURIComponent(u.email)}`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${idToken}`,
-              },
-            });
+          const response = await apiFetch(`/api/users/by-email?email=${encodeURIComponent(u.email)}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+            },
+          });
 
-            // Prevent race condition: checks if user is still logged in to Firebase
-            if (!auth.currentUser || auth.currentUser.uid !== u.uid) {
-              return;
-            }
+          // Prevent race condition: check if user didn't logout during fetch
+          if (!auth.currentUser || auth.currentUser.uid !== u.uid) {
+            return;
+          }
 
-            if (response.ok) {
-              const userData = response.data;
-              if (userData && userData.isVerified === false) {
-                await signOut(auth);
-                setUser(null);
-                setToken(null);
-                setLoading(false);
-                return;
-              }
-              setUser({ ...u, ...userData });
-            } else {
+          if (response.ok) {
+            const userData = response.data;
+            if (userData && userData.isVerified === false) {
+              // Late validation: If backend says "ban" or "unverified", kick them out.
+              // This might cause a UI flash, but prioritizes speed for valid users.
               await signOut(auth);
               setUser(null);
+              setToken(null);
+              return;
             }
-          } catch (error) {
-            if (auth.currentUser?.uid === u.uid) {
-              setUser(u);
-            }
+            // Merge backend data (like role, custom fields)
+            setUser(prev => ({ ...prev, ...userData }));
+          } else {
+            // If backend fails (e.g. 404), maybe just keep firebase user or force logout?
+            // For now, we trust Firebase auth unless backend explicitly denies.
+            console.warn("Backend profile fetch failed, using basic Firebase auth");
           }
-        } else {
-          setUser(null);
-          setToken(null);
+        } catch (error) {
+          console.error("Background auth validation error:", error);
+          // If critical error, maybe don't kick user out immediately if they have valid Firebase session
         }
-      } catch (error) {
-        console.error('Auth state change error:', error);
+      } else {
         setUser(null);
         setToken(null);
-      } finally {
         setLoading(false);
       }
     });

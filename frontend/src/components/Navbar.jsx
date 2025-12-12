@@ -126,6 +126,13 @@ const Navbar = () => {
                 Browse Items
               </Link>
               <Link
+                to="/report"
+                className="block px-3 py-2 rounded-lg text-base font-medium text-white bg-red-600 hover:bg-red-700 shadow-md text-center mx-3 my-2"
+                onClick={() => setMenuOpen(false)}
+              >
+                + Report Items
+              </Link>
+              <Link
                 to="/dashboard"
                 className="block px-3 py-2 rounded-lg text-base font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600"
                 onClick={() => setMenuOpen(false)}

@@ -21,7 +21,7 @@ const VerifyEmail = () => {
 
         await applyActionCode(auth, oobCode);
 
-        try { if (auth.currentUser) await auth.currentUser.reload(); } catch {}
+        try { if (auth.currentUser) await auth.currentUser.reload(); } catch { }
 
         setMessage('Email verified, you can now login');
       } catch (e) {

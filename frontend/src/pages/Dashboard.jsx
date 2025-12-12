@@ -189,7 +189,43 @@ const Dashboard = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-8">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="dashboard-wrapper w-screen overflow-x-hidden">
+        <div className="dashboard-bg"></div>
+        <div className="dashboard-container px-4 py-6">
+          {/* Welcome Card Skeleton */}
+          <div className="welcome-card animate-pulse">
+            <div className="flex justify-between mb-4">
+              <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+              <div className="h-8 bg-gray-200 rounded w-24"></div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i}>
+                  <div className="h-3 bg-gray-200 rounded w-16 mb-2"></div>
+                  <div className="h-5 bg-gray-200 rounded w-24"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Table Skeleton */}
+          <div className="bg-white rounded-lg shadow-lg p-4 mt-6 animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
+            <div className="space-y-3">
+              {/* Header */}
+              <div className="h-10 bg-gray-100 rounded w-full"></div>
+              {/* Rows */}
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-12 bg-gray-100 rounded w-full"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
 
