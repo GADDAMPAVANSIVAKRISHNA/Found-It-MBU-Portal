@@ -272,7 +272,7 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow-lg p-4 mt-6">
           <h2 className="text-xl font-bold mb-3">All Reported Items</h2>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto table-scroll-container pb-2">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50 text-left">

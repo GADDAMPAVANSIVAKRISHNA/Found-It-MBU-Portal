@@ -369,7 +369,7 @@ const Gallery = () => {
 
           return (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6 max-h-[85vh] overflow-y-auto scrollbar-hide relative">
                 <div className="flex justify-between items-center mb-3 sm:mb-4">
                   <h3 className="text-base sm:text-lg lg:text-xl font-bold">Contact Details</h3>
                   <button onClick={() => setContactItem(null)} className="text-lg hover:text-gray-600">✕</button>
@@ -395,9 +395,9 @@ const Gallery = () => {
                 </div>
 
                 {canConfirm && (
-                  <div className="mt-3">
+                  <div className="mt-4 pb-4">
                     <button
-                      className="w-full bg-indigo-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-indigo-700 transition"
+                      className="w-full bg-indigo-600 text-white px-3 sm:px-4 py-3 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-indigo-700 transition shadow-md relative z-10 active:scale-95 touch-manipulation"
                       onClick={handleConfirm}
                     >
                       This item belongs to me
@@ -405,9 +405,9 @@ const Gallery = () => {
                   </div>
                 )}
 
-                <div className="mt-4 flex">
+                <div className="mt-2 flex pb-2">
                   <button
-                    className="w-full px-3 sm:px-4 py-1.5 sm:py-2 border rounded text-xs sm:text-sm hover:bg-gray-50 transition"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2 border border-gray-300 rounded-lg text-sm sm:text-base font-medium hover:bg-gray-50 transition text-gray-700"
                     onClick={() => setContactItem(null)}
                   >
                     Close
