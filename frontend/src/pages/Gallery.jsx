@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { apiFetch, BASE_URL } from "../utils/api";
+import { apiFetch } from "../utils/api";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 
@@ -96,21 +96,11 @@ const Gallery = () => {
       const rawId = String(contactItem._id);
       const itemId = rawId.includes("_") ? rawId.split("_")[1] : rawId;
 
-      const headers = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${BASE_URL}/items/${itemId}/confirm`, {
+      const res = await apiFetch(`/api/items/${itemId}/confirm`, {
         method: "PUT",
-        headers,
       });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const msg = data?.message || "Error confirming item";
+      if (!res.ok) {
+        const msg = res.data?.message || res.data?.error || "Error confirming item";
         throw new Error(msg);
       }
 
@@ -258,6 +248,7 @@ const Gallery = () => {
                       <img
                         src={item.imageUrl}
                         alt={item.title}
+                        loading="lazy"
                         className="w-full h-full object-contain"
                         onError={(e) => (e.target.style.display = "none")}
                       />

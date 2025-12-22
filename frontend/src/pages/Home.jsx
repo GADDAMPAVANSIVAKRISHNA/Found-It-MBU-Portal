@@ -1,42 +1,185 @@
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import './Home.css';
 
 const Home = () => {
   const { user } = useAuth();
+  const [counts, setCounts] = useState({
+    reported: 0,
+    returned: 0,
+    users: 0,
+    claims: 0
+  });
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  // Use a ref to track animation state without triggering re-renders
+  const animationRef = useRef(null);
+
+  useEffect(() => {
+    // Create observer
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+
+            // Explicitly check for impact section to trigger numbers
+            if (entry.target.classList.contains('impact-section')) {
+              startCounting();
+            }
+          }
+        });
+      },
+      { threshold: 0.15 } // Trigger slightly earlier
+    );
+
+    const sections = document.querySelectorAll('.timeline-item');
+    const impactSection = document.querySelector('.impact-section');
+
+    sections.forEach((section) => observer.observe(section));
+    if (impactSection) observer.observe(impactSection);
+
+    return () => {
+      sections.forEach((section) => observer.unobserve(section));
+      if (impactSection) observer.unobserve(impactSection);
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, []); // Empty dependency array - logic handles single run via local variable/state check
+
+  const startCounting = () => {
+    // Prevent multiple runs if state update is lagging
+    setHasAnimated((prev) => {
+      if (prev) return true;
+
+      const targets = {
+        reported: 500,
+        returned: 320,
+        users: 1200,
+        claims: 180
+      };
+
+      const duration = 2000; // 2 seconds
+      let startTime = null;
+
+      const animate = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        const progress = timestamp - startTime;
+        const percentage = Math.min(progress / duration, 1);
+
+        // Easing function: EaseOutQuart
+        const ease = 1 - Math.pow(1 - percentage, 4);
+
+        setCounts({
+          reported: Math.floor(targets.reported * ease),
+          returned: Math.floor(targets.returned * ease),
+          users: Math.floor(targets.users * ease),
+          claims: Math.floor(targets.claims * ease)
+        });
+
+        if (percentage < 1) {
+          animationRef.current = requestAnimationFrame(animate);
+        } else {
+          // Snap to final values
+          setCounts(targets);
+        }
+      };
+
+      animationRef.current = requestAnimationFrame(animate);
+      return true;
+    });
+  };
+
   return (
-    <div className="w-screen overflow-x-hidden max-w-full mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-      <div className="text-center">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-3 sm:mb-4 lg:mb-6 leading-tight">
+    <div className="home-container">
+      <div className="hero-section text-center">
+        <h1 className="hero-title">
           Found-It — MBU Lost & Found
         </h1>
-        <div className="mb-6 sm:mb-8 lg:mb-10 flex justify-center px-2 sm:px-4">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 rounded-2xl shadow backdrop-blur-sm bg-white/40 border border-white/30 inline-block max-w-full">
-            <p className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-800 break-words">
+        <div className="hero-subtitle-wrapper">
+          <div className="hero-subtitle-glass">
+            <p className="hero-subtitle">
               Reuniting students with their belongings at Mohan Babu University
             </p>
           </div>
         </div>
-        {/* Action buttons shown only when logged in */}
-        {/* Action buttons removed as requested - moved to Navbar */}
+
+
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-10 sm:mt-14 lg:mt-16">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 lg:p-8 shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-600/10 text-blue-700 flex items-center justify-center text-xl sm:text-2xl mb-3 sm:mb-4">📝</div>
-          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3">Report Items</h3>
-          <p className="text-gray-600 text-xs sm:text-sm lg:text-base">Easily report lost or found items with details and images</p>
+      {/* How It Works - Timeline Section */}
+      <div className="timeline-section">
+        <div className="timeline-header">
+          <h2 className="timeline-title">How It Works</h2>
+          <p className="timeline-subtitle">Three simple steps to get your items back</p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 lg:p-8 shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-600/10 text-blue-700 flex items-center justify-center text-xl sm:text-2xl mb-3 sm:mb-4">🔍</div>
-          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3">Search Gallery</h3>
-          <p className="text-gray-600 text-xs sm:text-sm lg:text-base">Browse through all unclaimed items by category</p>
-        </div>
+        <div className="timeline-container">
+          {/* Central Line */}
+          <div className="timeline-line"></div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 lg:p-8 shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-600/10 text-blue-700 flex items-center justify-center text-xl sm:text-2xl mb-3 sm:mb-4">🎯</div>
-          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3">Claim Items</h3>
-          <p className="text-gray-600 text-xs sm:text-sm lg:text-base">Found your item? Claim it and collect from L&F office</p>
+          {/* Step 01: Report */}
+          <div className="timeline-item slide-left">
+            <div className="timeline-content left">
+              <h3>Report Lost or Found Items</h3>
+              <p>Quickly report any lost or found item with detailed descriptions and photos to help others identify it.</p>
+            </div>
+            <div className="timeline-marker">
+              <div className="hex-icon">📝</div>
+            </div>
+            <div className="timeline-empty"></div>
+          </div>
+
+          {/* Step 02: Browse */}
+          <div className="timeline-item slide-right">
+            <div className="timeline-empty"></div>
+            <div className="timeline-marker">
+              <div className="hex-icon">🔍</div>
+            </div>
+            <div className="timeline-content right">
+              <h3>Browse Found Items Gallery</h3>
+              <p>Search through our organized gallery of found items with real-time updates and smart filters.</p>
+            </div>
+          </div>
+
+          {/* Step 03: Claim */}
+          <div className="timeline-item slide-left">
+            <div className="timeline-content left">
+              <h3>Claim Your Item Securely</h3>
+              <p>Verify ownership through our secure process and collect your item from the university office.</p>
+            </div>
+            <div className="timeline-marker">
+              <div className="hex-icon">✅</div>
+            </div>
+            <div className="timeline-empty"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Community Impact Section */}
+      <div className="impact-section">
+        <div className="impact-container">
+          <div className="impact-header">
+            <h2 className="impact-title">Our Community Impact</h2>
+            <p className="impact-subtitle">Empowering the campus with trust and transparency</p>
+          </div>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-number">{counts.reported}+</div>
+              <div className="stat-label">Items Reported</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{counts.returned}+</div>
+              <div className="stat-label">Items Returned</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{counts.users.toLocaleString()}+</div>
+              <div className="stat-label">Registered Users</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{counts.claims}+</div>
+              <div className="stat-label">Active Claims</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

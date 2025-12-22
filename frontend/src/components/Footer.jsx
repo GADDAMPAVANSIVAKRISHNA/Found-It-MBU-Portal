@@ -17,9 +17,24 @@ const Footer = () => {
                 alt="MBU Logo"
                 className="h-10 w-auto object-contain"
               />
-              <h2 className="text-xl font-bold text-white tracking-wide">
-                Found-It • MBU
-              </h2>
+
+              {/* Divider */}
+              <div className="h-8 w-[1.5px] bg-slate-700 mx-1"></div>
+
+              {/* Logo Text Implementation */}
+              <div className="flex items-center select-none">
+                <span className="text-2xl font-extrabold text-[#3b5998] tracking-tight">F</span>
+                <div className="relative flex items-center justify-center mx-[1px]">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#70dbcd] fill-current">
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                  <svg viewBox="0 0 24 24" className="absolute w-3 h-3 text-[#3b5998] stroke-current stroke-[4] fill-none" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <span className="text-2xl font-extrabold text-[#3b5998] tracking-tight">und</span>
+                <span className="text-2xl font-extrabold text-[#70dbcd] tracking-tight">-It</span>
+              </div>
             </div>
             <p className="text-sm leading-relaxed text-slate-400 max-w-xs">
               Found-It is a student-built Lost & Found platform helping the campus community report, locate and recover lost belongings quickly and safely.

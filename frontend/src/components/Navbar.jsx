@@ -32,12 +32,26 @@ const Navbar = () => {
           <Link to="/" className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <img
               src="https://upload.wikimedia.org/wikipedia/en/4/4b/Mohan_Babu_University_Logo%2C_Tirupati%2C_Andhra_Pradesh%2C_India.png"
-              alt="MBU"
-              className="h-8 sm:h-10 lg:h-12 w-auto object-contain"
+              alt="MBU Logo"
+              className="h-10 sm:h-12 w-auto object-contain"
             />
-            <span className="font-bold text-primary whitespace-nowrap text-base sm:text-lg lg:text-xl tracking-wide">
-              Found-It
-            </span>
+            {/* Divider */}
+            <div className="h-8 w-[1.5px] bg-gray-300 mx-1"></div>
+
+            {/* Logo Text Implementation */}
+            <div className="flex items-center select-none">
+              <span className="text-2xl sm:text-3xl font-extrabold text-[#3b5998] tracking-tight">F</span>
+              <div className="relative flex items-center justify-center mx-[1px]">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 sm:w-8 sm:h-8 text-[#70dbcd] fill-current">
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                <svg viewBox="0 0 24 24" className="absolute w-3 h-3 sm:w-4 sm:h-4 text-[#3b5998] stroke-current stroke-[4] fill-none" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <span className="text-2xl sm:text-3xl font-extrabold text-[#3b5998] tracking-tight">und</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-[#70dbcd] tracking-tight">-It</span>
+            </div>
           </Link>
 
           {/* Right Section */}

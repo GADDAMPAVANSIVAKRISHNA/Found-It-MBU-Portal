@@ -48,7 +48,10 @@
 
 import { auth } from "../lib/firebase";
 
-let API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+let API_BASE_URL =
+  import.meta.env.NEXT_PUBLIC_BACKEND_URL ||
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" ? window.location.origin : "");
 
 if (API_BASE_URL.endsWith("/")) {
   API_BASE_URL = API_BASE_URL.slice(0, -1);
@@ -94,4 +97,4 @@ export const apiFetch = async (url, options = {}) => {
   }
 };
 
-export const BASE_URL = "http://localhost:5000/api";
+export const BASE_URL = `${API_BASE_URL}/api`;
