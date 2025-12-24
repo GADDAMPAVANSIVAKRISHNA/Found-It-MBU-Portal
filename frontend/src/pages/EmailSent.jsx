@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { auth, actionCodeSettings } from '../lib/firebase';
-import { sendEmailVerification } from 'firebase/auth';
+import { apiFetch } from '../utils/api';
 
 const EmailSent = () => {
   const navigate = useNavigate();
@@ -47,37 +47,31 @@ const EmailSent = () => {
         return;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      // Use standard fetch or apiFetch if available, but axios is also fine
-      const res = await fetch(`${API_URL}/api/auth/send-verification-email`, {
+      const res = await apiFetch('/api/auth/send-verification-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
       });
-
-      const data = await res.json();
 
       if (res.ok) {
         setMessage('Verification email resent! Please check your inbox (and Spam). Wait at least 2 minutes for it to arrive.');
         setResendCooldown(60); // 60s cooldown
       } else {
-        // Parse raw error if possible
-        let errorMsg = data.error || 'Failed to resend verification email.';
+        let errorMsg = res.data?.error || 'Failed to resend verification email.';
 
         // Handle Firebase "Too Many Attempts" specifically
         if (typeof errorMsg === 'string' && (errorMsg.includes('TOO_MANY_ATTEMPTS') || errorMsg.includes('quota'))) {
           errorMsg = 'Too many requests. Please wait a few minutes before trying again.';
         }
 
-        // Handle object errors (sometimes Firebase returns JSON inside string)
         try {
-          if (errorMsg.includes('{')) {
+          if (typeof errorMsg === 'string' && errorMsg.includes('{')) {
             const parsed = JSON.parse(errorMsg);
             if (parsed?.error?.message === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
               errorMsg = 'Too many requests. Please wait a few minutes before trying again.';
             }
           }
-        } catch (e) { /* ignore parse error */ }
+        } catch (e) {}
 
         setMessage(errorMsg);
       }

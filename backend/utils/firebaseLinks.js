@@ -1,5 +1,5 @@
 const admin = require('../config/firebaseAdmin');
-const CLIENT_URL = process.env.CLIENT_URL || process.env.CORS_ORIGIN || 'http://localhost:5173';
+const CLIENT_URL = process.env.CLIENT_URL || process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:5173';
 
 const actionCodeSettings = {
   url: `${CLIENT_URL}/verify-email`,
@@ -20,5 +20,4 @@ module.exports = {
   generateVerificationLink,
   generateResetLink,
 };
-
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { apiFetch } from '../utils/api';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -21,23 +21,26 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      // 👉 use Backend Gmail + Firebase reset
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-password-reset`, {
-        email,
+      const res = await apiFetch('/api/auth/send-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
-      setMessage('Password reset email sent! Please check your inbox and spam folder.');
-      setEmail('');
-    } catch (err) {
-      console.error('Password reset error:', err?.message);
-      let errorMsg = err?.response?.data?.error || 'Failed to send reset email. Please try again.';
+      if (res.ok) {
+        setMessage('Password reset email sent! Please check your inbox and spam folder.');
+        setEmail('');
+      } else {
+        let errorMsg = res.data?.error || 'Failed to send reset email. Please try again.';
 
-      // Friendly message for server config errors
-      if (errorMsg.includes('Invalid login') || errorMsg.includes('BadCredentials')) {
-        errorMsg = 'System Email Error: The server could not log in to the email account. Please contact the administrator to fix the backend configuration.';
+        if (typeof errorMsg === 'string' && (errorMsg.includes('Invalid login') || errorMsg.includes('BadCredentials') || errorMsg.includes('535'))) {
+          errorMsg = 'System Email Error: Backend mail login failed. Admin must configure SMTP and use an App Password if required.';
+        }
+
+        setError(errorMsg);
       }
-
-      setError(errorMsg);
+    } catch (err) {
+      setError('Network error. Please try again later.');
     }
 
     setLoading(false);
