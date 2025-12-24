@@ -1,33 +1,43 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const User = require('../models/user');
-const auth = require('../middleware/auth');
-const admin = require('../config/firebaseAdmin');
+const jwt = require("jsonwebtoken");
+const User = require("../models/user");
+const admin = require("../config/firebaseAdmin");
 
-const { generateVerificationLink, generateResetLink } = require('../utils/firebaseLinks');
-const { sendVerificationEmail, sendPasswordResetEmail: sendResetEmail } = require('../utils/email');
+const {
+  generateVerificationLink,
+  generateResetLink,
+} = require("../utils/firebaseLinks");
 
-// REGISTER (Firebase + Mongo + Gmail verification)
-router.post('/register', async (req, res) => {
+const {
+  sendVerificationEmail,
+  sendPasswordResetEmail: sendResetEmail,
+} = require("../utils/email");
+
+/**
+ * REGISTER (Firebase + Mongo + Email Verification)
+ */
+router.post("/register", async (req, res) => {
   try {
     const { name, email, password, branch, year, contactNumber } = req.body;
 
-    if (!email.endsWith('@mbu.asia')) {
-      return res.status(400).json({ error: 'Must use @mbu.asia email' });
+    if (!email.endsWith("@mbu.asia")) {
+      return res.status(400).json({ error: "Must use @mbu.asia email" });
     }
 
-    // Already exists?
     const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ error: 'User already exists' });
+    if (exists) {
+      return res.status(400).json({ error: "User already exists" });
+    }
 
-    // 1) Create Firebase auth user
+    // 1️⃣ Create Firebase Auth user
     const fbUser = await admin.auth().createUser({
       email,
       password,
       displayName: name,
     });
 
+    // 2️⃣ Create Mongo user + verification link in parallel
     const [user, link] = await Promise.all([
       User.create({
         name,
@@ -39,32 +49,35 @@ router.post('/register', async (req, res) => {
         firebaseUid: fbUser.uid,
         isVerified: false,
       }),
-      generateVerificationLink(email)
+      generateVerificationLink(email),
     ]);
 
+    // 3️⃣ Respond IMMEDIATELY (no waiting for email)
     res.status(201).json({
-      message: "Registered. Check your @mbu.asia email for verification link.",
+      message: "Registered successfully. Check your email to verify.",
     });
 
-    sendVerificationEmail(email, link).catch(err => {
-      console.error("VERIFICATION EMAIL ERROR:", err);
+    // 4️⃣ Send verification email asynchronously
+    sendVerificationEmail(email, link).catch((err) => {
+      console.error("❌ VERIFICATION EMAIL FAILED:", err.message);
     });
-
   } catch (err) {
-    console.error(err)
+    console.error("❌ REGISTER ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// LOGIN
-router.post('/login', async (req, res) => {
+/**
+ * LOGIN
+ */
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // require verified
+    // Auto-sync verification from Firebase
     if (!user.isVerified) {
       try {
         const fbUser = await admin.auth().getUserByEmail(email);
@@ -72,73 +85,69 @@ router.post('/login', async (req, res) => {
           user.isVerified = true;
           await user.save();
         }
-      } catch { }
+      } catch (_) {}
     }
 
-    if (!user.isVerified)
-      return res.status(403).json({ error: 'Verify email first' });
+    if (!user.isVerified) {
+      return res.status(403).json({ error: "Verify email first" });
+    }
 
     const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) return res.status(401).json({ error: "Invalid password" });
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
 
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "7d" }
     );
 
     res.json({ token });
-
   } catch (err) {
+    console.error("❌ LOGIN ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// SEND VERIFICATION AGAIN
-router.post('/send-verification', async (req, res) => {
+/**
+ * RESEND VERIFICATION EMAIL
+ */
+router.post("/send-verification", async (req, res) => {
   try {
     const { email } = req.body;
 
     const link = await generateVerificationLink(email);
-    await sendVerificationEmail(email, link);
 
     res.json({ message: "Verification email resent" });
 
+    sendVerificationEmail(email, link).catch((err) => {
+      console.error("❌ RESEND VERIFICATION ERROR:", err.message);
+    });
   } catch (err) {
-    console.error("VERIFICATION EMAIL ERROR:", err);
-    res.status(500).json({ error: "Email send failed", details: err && err.message ? err.message : err });
+    console.error("❌ VERIFICATION ERROR:", err);
+    res.status(500).json({ error: "Email send failed" });
   }
 });
 
-// Alias to match frontend
-router.post('/send-verification-email', async (req, res) => {
-  try {
-    const { email } = req.body;
-    const link = await generateVerificationLink(email);
-    await sendVerificationEmail(email, link);
-    res.json({ message: "Verification email sent successfully" });
-  } catch (err) {
-    console.error("VERIFICATION EMAIL ERROR:", err);
-    res.status(500).json({ error: "Email send failed", details: err && err.message ? err.message : err });
-  }
-});
-
-// PASSWORD RESET
-// PASSWORD RESET
-router.post('/send-password-reset', async (req, res) => {
+/**
+ * PASSWORD RESET
+ */
+router.post("/send-password-reset", async (req, res) => {
   try {
     const { email } = req.body;
 
     const link = await generateResetLink(email);
-    await sendResetEmail(email, link);
-    res.json({ message: "Password reset email sent successfully" });
 
+    res.json({ message: "Password reset email sent" });
+
+    sendResetEmail(email, link).catch((err) => {
+      console.error("❌ PASSWORD RESET ERROR:", err.message);
+    });
   } catch (err) {
-    console.error("PASSWORD RESET ERROR:", err);
-    res.status(500).json({ error: "Email send failed", details: err && err.message ? err.message : err });
+    console.error("❌ PASSWORD RESET ERROR:", err);
+    res.status(500).json({ error: "Email send failed" });
   }
 });
 
 module.exports = router;
-
-
