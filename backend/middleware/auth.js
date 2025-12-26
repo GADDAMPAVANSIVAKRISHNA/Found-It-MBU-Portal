@@ -10,7 +10,8 @@ module.exports = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Missing token" });
+      console.log('Auth failed: Missing Authorization header');
+      return res.status(401).json({ error: "Missing token", message: "Missing Authorization token" });
     }
 
     const token = authHeader.split(" ")[1];
@@ -73,11 +74,13 @@ module.exports = async (req, res, next) => {
 
       return next();
     } catch (e) {
-      return res.status(401).json({ error: "Invalid or expired token" });
+      console.log('Auth failed: JWT verification failed', e && e.message);
+      return res.status(401).json({ error: "Invalid or expired token", message: "Invalid or expired token" });
     }
 
   } catch (err) {
-    return res.status(401).json({ error: "Authentication failed" });
+    console.error('Auth middleware error:', err && err.message);
+    return res.status(401).json({ error: "Authentication failed", message: "Authentication failed" });
   }
 };
 

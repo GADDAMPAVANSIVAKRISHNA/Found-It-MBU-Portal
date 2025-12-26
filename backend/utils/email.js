@@ -70,8 +70,21 @@ async function sendPasswordResetEmail(email, link) {
   });
 }
 
+/**
+ * Send generic notification email
+ */
+async function sendNotificationEmail(email, subject, htmlContent) {
+  return transporter.sendMail({
+    from: '"FoundIt MBU" <no-reply@founditmbu.site>',
+    to: email,
+    subject: subject,
+    html: htmlContent,
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
+  sendNotificationEmail,
   isEmailConfigured,
 };

@@ -174,7 +174,9 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Debug log
 app.use((req, res, next) => {
-  console.log(`📨 ${req.method} → ${req.originalUrl}`);
+  const host = req.headers.host || 'unknown-host';
+  const origin = req.headers.origin || 'no-origin';
+  console.log(`📨 ${req.method} → ${req.originalUrl} [host=${host} origin=${origin}]`);
   next();
 });
 
@@ -192,13 +194,18 @@ app.use("/api", require("./routes/reports"));
 app.use("/api/claim", require("./routes/claim"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api", require("./routes/notifications"));
+app.use("/api/connections", require("./routes/connectionRoutes"));
 
 // ⭐ ADD THIS ⭐
 // app.use("/api/otp", require("./routes/otp")); // Removed OTP
 
 // 404
 app.use((req, res) => {
-  res.status(404).json({ error: "Not found", path: req.originalUrl });
+  const payload = { error: "Not found", path: req.originalUrl };
+  if (process.env.NODE_ENV !== 'production' && String(req.originalUrl || '').startsWith('/api')) {
+    payload.message = 'API route not found. If you are developing locally, ensure the backend is running and that the frontend uses the correct BACKEND URL (VITE_API_URL or NEXT_PUBLIC_BACKEND_URL).';
+  }
+  res.status(404).json(payload);
 });
 
 // MongoDB

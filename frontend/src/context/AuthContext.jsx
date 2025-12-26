@@ -86,8 +86,6 @@ export const AuthProvider = ({ children }) => {
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      // 🚨 STEP-9 ENFORCE VERIFIED BEFORE LOGIN
-      await userCredential.user.reload();
       if (!userCredential.user.emailVerified) {
         await signOut(auth);
         const err = new Error('Email not verified');
@@ -95,24 +93,10 @@ export const AuthProvider = ({ children }) => {
         throw err;
       }
 
+      // Remove blocking reload and profile fetch to speed up login
+      // Verification rules are enforced in onAuthStateChanged and backend calls
+
       const idToken = await userCredential.user.getIdToken();
-
-      const profileRes = await apiFetch(`/api/users/by-email?email=${encodeURIComponent(userCredential.user.email)}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-        },
-      });
-
-      if (profileRes.ok) {
-        const userData = profileRes.data;
-        if (userData && userData.isVerified === false) {
-          await signOut(auth);
-          const err = new Error('Email not verified');
-          err.code = 'email-not-verified';
-          throw err;
-        }
-      }
 
       setToken(idToken);
       setUser(userCredential.user);

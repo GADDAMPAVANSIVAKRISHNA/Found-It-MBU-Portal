@@ -3,14 +3,21 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import ConnectModal from "../components/ConnectModal";
 
 const Gallery = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // For Lost items (to show contact details of owner to finder)
   const [contactItem, setContactItem] = useState(null);
-  const { user, token } = useAuth();
+
+  // For Found items (to show Secure Connect Modal)
+  const [connectItem, setConnectItem] = useState(null);
+
+  const { user } = useAuth();
 
 
   const [localSearch, setLocalSearch] = useState("");
@@ -86,30 +93,21 @@ const Gallery = () => {
     }
   };
 
-  const handleConfirm = async () => {
-    try {
-      if (!contactItem || !contactItem._id) {
-        toast.error("Item ID missing");
-        return;
-      }
+  const handleConnect = (item) => {
+    if (!user) {
+      toast.error("Please login to connect");
+      return;
+    }
 
-      const rawId = String(contactItem._id);
-      const itemId = rawId.includes("_") ? rawId.split("_")[1] : rawId;
+    // Identify if it's a found item or lost item
+    const isFound = item.itemType === "Found" || item.type === "Found" || String(item._id || "").startsWith("found_");
 
-      const res = await apiFetch(`/api/items/${itemId}/confirm`, {
-        method: "PUT",
-      });
-      if (!res.ok) {
-        const msg = res.data?.message || res.data?.error || "Error confirming item";
-        throw new Error(msg);
-      }
-
-      toast.success("Thank you! Finder awarded a badge.");
-      setContactItem(null);
-      fetchItems();
-    } catch (error) {
-      console.error(error);
-      toast.error(error.message || "Error confirming item");
+    if (isFound) {
+      // Open Secure Connect Modal
+      setConnectItem(item);
+    } else {
+      // Lost item: Show contact details (so finder can contact owner)
+      setContactItem(item);
     }
   };
 
@@ -307,15 +305,18 @@ const Gallery = () => {
                       {item.description}
                     </p>
 
-                    {/* Buttons */}
-                    <div className="flex">
-                      <button
-                        className="w-full bg-green-600 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-green-700 transition"
-                        onClick={() => setContactItem(item)}
-                      >
-                        Connect
-                      </button>
-                    </div>
+                    {/* Buttons - Hidden if owner */}
+                    {user?.uid !== item.userId && (
+                      <div className="flex">
+                        <button
+                          className="w-full bg-green-600 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-green-700 transition flex items-center justify-center gap-1"
+                          onClick={() => handleConnect(item)}
+                        >
+                          {((item.itemType === "Found" || item.type === "Found") && "💬 Secure Connect") || "📞 Contact Owner"}
+                        </button>
+                      </div>
+                    )}
+
                   </div>
                 </div>
               ))}
@@ -348,21 +349,17 @@ const Gallery = () => {
           </>
         )}
 
-        {/* CONTACT MODAL */}
+        {/* LEGACY CONTACT MODAL (Only for Lost items now) */}
         {contactItem && (() => {
           const contactEmail = contactItem?.userEmail || contactItem?.email || "";
           const emailLocal = (contactEmail || "").split("@")[0];
           const rollNumber = emailLocal || "";
 
-          const isFoundItem = contactItem.itemType === "Found" || String(contactItem._id || "").startsWith("found_");
-          const statusLower = (contactItem.status || "").toLowerCase();
-          const canConfirm = isFoundItem && statusLower !== "returned" && statusLower !== "claimed";
-
           return (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50">
               <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6 max-h-[85vh] overflow-y-auto scrollbar-hide relative">
                 <div className="flex justify-between items-center mb-3 sm:mb-4">
-                  <h3 className="text-base sm:text-lg lg:text-xl font-bold">Contact Details</h3>
+                  <h3 className="text-base sm:text-lg lg:text-xl font-bold">Owner Contact Details</h3>
                   <button onClick={() => setContactItem(null)} className="text-lg hover:text-gray-600">✕</button>
                 </div>
 
@@ -385,18 +382,7 @@ const Gallery = () => {
                   <p className="text-gray-600">{contactItem.description}</p>
                 </div>
 
-                {canConfirm && (
-                  <div className="mt-4 pb-4">
-                    <button
-                      className="w-full bg-indigo-600 text-white px-3 sm:px-4 py-3 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-indigo-700 transition shadow-md relative z-10 active:scale-95 touch-manipulation"
-                      onClick={handleConfirm}
-                    >
-                      This item belongs to me
-                    </button>
-                  </div>
-                )}
-
-                <div className="mt-2 flex pb-2">
+                <div className="mt-4 flex pb-2">
                   <button
                     className="w-full px-3 sm:px-4 py-2 sm:py-2 border border-gray-300 rounded-lg text-sm sm:text-base font-medium hover:bg-gray-50 transition text-gray-700"
                     onClick={() => setContactItem(null)}
@@ -408,6 +394,18 @@ const Gallery = () => {
             </div>
           );
         })()}
+
+        {/* SECURE CONNECT MODAL (For Found items) */}
+        {connectItem && (
+          <ConnectModal
+            item={connectItem}
+            onClose={() => setConnectItem(null)}
+            onSuccess={() => {
+              setConnectItem(null);
+              // Optional: refresh or toast is handled in modal
+            }}
+          />
+        )}
       </div>
     </div>
   );

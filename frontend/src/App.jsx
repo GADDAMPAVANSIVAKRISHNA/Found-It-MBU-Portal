@@ -25,6 +25,7 @@ const EmailSent = lazy(() => import("./pages/EmailSent"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Messages = lazy(() => import("./pages/Messages"));
 
 // Firebase auth
 import { auth } from "./lib/firebase";
@@ -99,6 +100,15 @@ function App() {
                   element={
                     <PrivateRoute>
                       <AdminDashboard />
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/messages"
+                  element={
+                    <PrivateRoute>
+                      <Messages />
                     </PrivateRoute>
                   }
                 />

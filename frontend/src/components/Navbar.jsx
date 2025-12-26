@@ -68,6 +68,7 @@ const Navbar = () => {
                     </svg>
                     Report
                   </Link>
+                  <Link to="/messages" className="text-gray-700 hover:text-blue-600 font-medium text-sm transition">Messages</Link>
                   <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 font-medium text-sm transition">Dashboard</Link>
                   <NotificationsBell />
                 </>
@@ -145,6 +146,13 @@ const Navbar = () => {
                 onClick={() => setMenuOpen(false)}
               >
                 + Report Items
+              </Link>
+              <Link
+                to="/messages"
+                className="block px-3 py-2 rounded-lg text-base font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                onClick={() => setMenuOpen(false)}
+              >
+                Messages
               </Link>
               <Link
                 to="/dashboard"

@@ -323,20 +323,15 @@ import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../utils/api";
 import imageCompression from "browser-image-compression";
 import { auth } from "../lib/firebase";
+import ConnectModal from "../components/ConnectModal";
 
 const ItemDetails = () => {
   const { id } = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   const [item, setItem] = useState(null);
-  const [showClaim, setShowClaim] = useState(false);
-
-  const [claimForm, setClaimForm] = useState({
-    studentId: "",
-    proofDescription: "",
-    proofImageFile: null,
-  });
+  const [showConnectModal, setShowConnectModal] = useState(false);
 
   const [userInfo, setUserInfo] = useState({
     name: "",
@@ -372,58 +367,18 @@ const ItemDetails = () => {
     }
   };
 
-  const submitClaim = async (e) => {
-    e.preventDefault();
-
+  const handleConnectClick = () => {
     if (!isAuthenticated) {
-      alert("Please login to claim items");
+      alert("Please login to connect");
       navigate("/login");
       return;
     }
-
-    try {
-      const u = auth.currentUser;
-
-      const fd = new FormData();
-      fd.append("itemId", item._id);
-      fd.append("type", item.type?.toLowerCase());
-      fd.append("name", userInfo.name);
-      fd.append("email", userInfo.email);
-      fd.append("studentId", claimForm.studentId);
-      fd.append("contactNumber", userInfo.contactNumber || "");
-      fd.append("proofDescription", claimForm.proofDescription);
-      fd.append("userId", u.uid);
-
-      if (claimForm.proofImageFile) {
-        const compressed = await imageCompression(claimForm.proofImageFile, {
-          maxWidthOrHeight: 800,
-          maxSizeMB: 1.2,
-          useWebWorker: true,
-        });
-
-        fd.append(
-          "proofImage",
-          new File([compressed], claimForm.proofImageFile.name, {
-            type: compressed.type,
-          })
-        );
-      }
-
-      const res = await apiFetch("/api/claims", {
-        method: "POST",
-        body: fd,
-      });
-
-      if (!res.ok) {
-        return alert(res.data?.message || "Failed to submit claim");
-      }
-
-      alert("Claim submitted! You will be notified upon review.");
-      navigate("/dashboard");
-    } catch (err) {
-      console.error(err);
-      alert("Error submitting claim");
+    // Prevent owner from connecting to own item
+    if (user?.uid === item.userId) {
+      alert("You cannot connect to your own item");
+      return;
     }
+    setShowConnectModal(true);
   };
 
   if (!item)
@@ -432,6 +387,8 @@ const ItemDetails = () => {
         Loading...
       </div>
     );
+
+  const isOwner = user?.uid === item.userId;
 
   return (
     <div className="w-screen overflow-x-hidden max-w-full mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
@@ -464,11 +421,10 @@ const ItemDetails = () => {
                 <div className="flex justify-between text-xs sm:text-sm lg:text-base">
                   <span className="text-gray-600">Type:</span>
                   <span
-                    className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm ${
-                      item.type === "Lost"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-green-100 text-green-700"
-                    }`}
+                    className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm ${item.type === "Lost"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-green-100 text-green-700"
+                      }`}
                   >
                     {item.type}
                   </span>
@@ -512,39 +468,58 @@ const ItemDetails = () => {
                 </p>
               </div>
 
-              {/* UPDATED CONTACT BLOCK */}
-              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-bold mb-2 text-sm sm:text-base lg:text-lg">Contact:</h3>
+              {/* CONTACT BLOCK - Hidden for Found items unless Owner */}
+              {(item.type === "Lost" || isOwner) && (
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-bold mb-2 text-sm sm:text-base lg:text-lg">Contact:</h3>
 
-                <p className="text-xs sm:text-sm lg:text-base">
-                  <strong>Roll Number:</strong>{" "}
-                  {(item.userEmail && item.userEmail.split("@")[0]) || "—"}
-                </p>
+                  <p className="text-xs sm:text-sm lg:text-base">
+                    <strong>Roll Number:</strong>{" "}
+                    {(item.userEmail && item.userEmail.split("@")[0]) || "—"}
+                  </p>
 
-                <p className="text-xs sm:text-sm lg:text-base">
-                  <strong>Phone:</strong>{" "}
-                  <span className="break-all">{item.userContact || ""}</span>
-                </p>
+                  <p className="text-xs sm:text-sm lg:text-base">
+                    <strong>Phone:</strong>{" "}
+                    <span className="break-all">{item.userContact || ""}</span>
+                  </p>
 
-                <p className="text-xs sm:text-sm lg:text-base">
-                  <strong>Email:</strong>{" "}
-                  <span className="break-all">{item.userEmail || ""}</span>
-                </p>
-              </div>
+                  <p className="text-xs sm:text-sm lg:text-base">
+                    <strong>Email:</strong>{" "}
+                    <span className="break-all">{item.userEmail || ""}</span>
+                  </p>
+                </div>
+              )}
+
+              {item.type === "Found" && !isOwner && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
+                  <p className="font-semibold mb-1">🔒 Private Contact</p>
+                  <p>To protect privacy, contact details are hidden. Use the button below to securely connect with the finder.</p>
+                </div>
+              )}
+
             </div>
 
-            {item.type === "Found" && item.status === "Active" && (
+            {item.type === "Found" && item.status === "Active" && !isOwner && (
               <button
-                onClick={() => setShowClaim(true)}
-                className="w-full bg-blue-600 text-white py-2.5 sm:py-3 lg:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-blue-700 transition"
+                onClick={handleConnectClick}
+                className="w-full bg-blue-600 text-white py-2.5 sm:py-3 lg:py-3 rounded-lg font-semibold text-sm sm:text-base hover:bg-blue-700 transition flex items-center justify-center gap-2"
               >
-                Claim Item
+                <span>💬</span> Connect Securely
               </button>
             )}
           </div>
         </div>
       </div>
 
+      {showConnectModal && (
+        <ConnectModal
+          item={item}
+          onClose={() => setShowConnectModal(false)}
+          onSuccess={() => {
+            // Optional: Reload item or navigate
+          }}
+        />
+      )}
     </div>
   );
 };
