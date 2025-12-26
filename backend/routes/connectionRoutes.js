@@ -62,10 +62,12 @@ router.post('/request', auth, async (req, res) => {
         }
 
         // 4. Create Request
+        // UX change: auto-accept the connection so messaging behaves like a private chat
         const newRequest = new ConnectionRequest({
             finderId: item.userId,
             claimantId,
             itemId: rawItemId,
+            status: 'accepted', // auto-accept to allow immediate messaging
             verification,
             messages: [{
                 senderId: claimantId,
@@ -73,6 +75,7 @@ router.post('/request', auth, async (req, res) => {
                 timestamp: new Date()
             }]
         });
+        console.log('Auto-accepting connection request for instant chat', { finderId: item.userId, claimantId, itemId: rawItemId });
 
         await newRequest.save();
 
