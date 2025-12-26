@@ -2,20 +2,15 @@ import React, { useState } from 'react';
 import { apiFetch } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-
-const MESSAGE_TEMPLATES = [
-    "This item belongs to me",
-    "I can verify ownership",
-    "Please review my claim",
-    "Requesting to connect regarding this item"
-];
+import { useNavigate } from 'react-router-dom';
 
 const ConnectModal = ({ item, onClose, onSuccess }) => {
-    const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const { token, user } = useAuth();
+    const navigate = useNavigate();
+
     const [formData, setFormData] = useState({
-        templateMessage: '',
+        message: '',
         color: '',
         mark: '',
         location: ''
@@ -27,50 +22,58 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
         return possibleUserIds.includes(String(item.userId));
     })();
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async () => {
-        if (!formData.templateMessage) return toast.error("Please select a message");
-        if (!formData.color || !formData.mark || !formData.location) return toast.error("Please fill all verification details");
+        if (!formData.message) return toast.error('Please enter a message');
+        if (!formData.color || !formData.mark || !formData.location) return toast.error('Please fill all verification details');
 
         if (isOwnItem) {
-            toast.error("You cannot contact your own item.");
+            toast.error('You cannot contact your own item.');
             return;
         }
 
         setLoading(true);
+
+        // Optimistic draft request so user immediately sees a chat
+        const tempId = `temp-${Date.now()}`;
+        const senderId = user && (user._id || user.uid || user.firebaseUid) ? (user._id || user.uid || user.firebaseUid) : 'unknown';
+        const draftRequest = {
+            _id: tempId,
+            finderId: item.userId,
+            claimantId: senderId,
+            itemId: item._id,
+            itemTitle: item.title,
+            status: 'pending',
+            verification: { color: formData.color, mark: formData.mark, location: formData.location },
+            messages: [{ senderId, text: formData.message, timestamp: new Date().toISOString() }],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        // Navigate to messages with draft (instant chat behavior)
+        navigate('/messages', { state: { draftRequest } });
+        onClose && onClose();
+
         try {
             const res = await apiFetch('/api/connections/request', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({
-                    itemId: item._id,
-                    verification: {
-                        color: formData.color,
-                        mark: formData.mark,
-                        location: formData.location
-                    },
-                    templateMessage: formData.templateMessage
-                })
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ itemId: item._id, verification: draftRequest.verification, templateMessage: formData.message })
             });
 
             if (res.ok) {
-                toast.success("Request sent successfully!");
-                onSuccess && onSuccess();
-                onClose();
+                // Update URL with real request id so Messages can fetch & replace
+                navigate(`/messages?requestId=${res.data.request._id}`, { replace: true });
+                toast.success('Message sent');
+                onSuccess && onSuccess(res.data.request);
             } else {
-                const serverMsg = res.data?.message || res.data?.error || "Failed to send request";
+                const serverMsg = res.data?.message || res.data?.error || 'Failed to send request';
                 toast.error(serverMsg);
             }
-        } catch (error) {
-            console.error(error);
-            // If API returned JSON error it should be in error.message or error
-            toast.error(error?.message || "Something went wrong");
+        } catch (err) {
+            console.error('Send request error:', err);
+            toast.error('Network error while sending request');
         } finally {
             setLoading(false);
         }
@@ -82,103 +85,46 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
 
                 <div className="p-6">
-                    <h2 className="text-2xl font-bold mb-2">Connect Securely</h2>
-                    <p className="text-sm text-gray-500 mb-6">
-                        Contact the finder without sharing personal details.
-                        Step {step} of 2
-                    </p>
+                    <div className="flex items-center gap-4 mb-4">
+                        {item.imageUrl ? (
+                            <img src={item.imageUrl} alt={item.title} className="w-16 h-16 object-cover rounded" />
+                        ) : (
+                            <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">📷</div>
+                        )}
+                        <div>
+                            <h2 className="text-lg font-bold">{item.title}</h2>
+                            <p className="text-xs text-gray-500">Message the finder about this item</p>
+                        </div>
+                    </div>
 
-                    {step === 1 ? (
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-lg">Select a Message</h3>
-                            <div className="grid gap-3">
-                                {MESSAGE_TEMPLATES.map((msg, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => setFormData({ ...formData, templateMessage: msg })}
-                                        className={`p-3 text-left border rounded-lg transition-all ${formData.templateMessage === msg
-                                                ? 'border-blue-600 bg-blue-50 text-blue-700 font-medium ring-1 ring-blue-600'
-                                                : 'border-gray-200 hover:border-blue-400 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        {msg}
-                                    </button>
-                                ))}
-                            </div>
-                            <button
-                                onClick={() => {
-                                    if (formData.templateMessage) setStep(2);
-                                    else toast.error("Please select a message");
-                                }}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold mt-4"
-                            >
-                                Next: Verification
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Item Color</label>
+                            <input name="color" value={formData.color} onChange={handleChange} placeholder="e.g. Red" className="w-full border rounded-lg p-2.5 mt-1" />
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Unique Mark / Description</label>
+                            <textarea name="mark" value={formData.mark} onChange={handleChange} placeholder="e.g. Scratch on back" rows="2" className="w-full border rounded-lg p-2.5 mt-1" />
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Lost Location (Approx)</label>
+                            <input name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Library 2nd Floor" className="w-full border rounded-lg p-2.5 mt-1" />
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Message</label>
+                            <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Hi — I believe this is mine. I can verify ownership..." rows="3" className="w-full border rounded-lg p-2.5 mt-1" />
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <button onClick={onClose} className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg">Cancel</button>
+                            <button onClick={handleSubmit} disabled={loading || isOwnItem} className="w-2/3 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg flex items-center justify-center">
+                                {loading ? <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span> : 'Send Message'}
                             </button>
                         </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-lg">Verify Ownership</h3>
-                            <p className="text-xs text-gray-500 bg-yellow-50 p-2 rounded border border-yellow-200 mb-2">
-                                🔒 Only these details will be sent initially. No contact info.
-                            </p>
-
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Item Color</label>
-                                <input
-                                    name="color"
-                                    value={formData.color}
-                                    onChange={handleChange}
-                                    placeholder="e.g. Red, Black"
-                                    className="w-full border rounded-lg p-2.5 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Unique Mark / Description</label>
-                                <textarea
-                                    name="mark"
-                                    value={formData.mark}
-                                    onChange={handleChange}
-                                    placeholder="e.g. Scratch on back, sticker..."
-                                    rows="2"
-                                    className="w-full border rounded-lg p-2.5 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Lost Location (Approx)</label>
-                                <input
-                                    name="location"
-                                    value={formData.location}
-                                    onChange={handleChange}
-                                    placeholder="e.g. Library 2nd Floor"
-                                    className="w-full border rounded-lg p-2.5 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    onClick={() => setStep(1)}
-                                    className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold"
-                                >
-                                    Back
-                                </button>
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={loading || isOwnItem}
-                                    className="w-2/3 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center"
-                                >
-                                    {loading ? (
-                                        <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span>
-                                    ) : isOwnItem ? (
-                                        "You cannot contact your own item."
-                                    ) : (
-                                        "Send Request"
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>
