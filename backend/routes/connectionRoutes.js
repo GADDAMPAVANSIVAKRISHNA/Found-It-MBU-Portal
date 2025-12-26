@@ -57,8 +57,38 @@ router.post('/request', auth, async (req, res) => {
         });
 
         if (existingRequest) {
-            console.warn('Duplicate connection request blocked', { claimantId, itemId, existingRequestId: existingRequest._id });
-            return res.status(400).json({ message: 'You have already sent a request for this item', error: 'Duplicate request' });
+            console.log('Existing request found — updating and appending message to enable instant chat', { claimantId, itemId, existingRequestId: existingRequest._id });
+
+            // Merge verification details (keep whatever was already present unless blank)
+            existingRequest.verification = existingRequest.verification || {};
+            existingRequest.verification.color = existingRequest.verification.color || (verification && verification.color) || '';
+            existingRequest.verification.mark = existingRequest.verification.mark || (verification && verification.mark) || '';
+            existingRequest.verification.location = existingRequest.verification.location || (verification && verification.location) || '';
+
+            // Auto-accept if not already accepted
+            if (existingRequest.status !== 'accepted') {
+                existingRequest.status = 'accepted';
+            }
+
+            // Append initial message to existing conversation
+            if (templateMessage) {
+                existingRequest.messages.push({ senderId: claimantId, text: templateMessage, timestamp: new Date() });
+            }
+            existingRequest.updatedAt = Date.now();
+
+            await existingRequest.save();
+
+            // Create Notification for Finder about the new message/update
+            await Notification.create({
+                userId: existingRequest.finderId,
+                type: 'connection_request',
+                title: 'Updated Connection Request',
+                message: `Someone has updated their request regarding the item.`,
+                itemId: existingRequest.itemId,
+                claimId: existingRequest._id
+            });
+
+            return res.status(200).json({ message: 'Updated existing request and added message', request: existingRequest });
         }
 
         // 4. Create Request

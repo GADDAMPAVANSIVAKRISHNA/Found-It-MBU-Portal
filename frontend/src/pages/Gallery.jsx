@@ -312,7 +312,7 @@ const Gallery = () => {
                           className="w-full bg-green-600 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-green-700 transition flex items-center justify-center gap-1"
                           onClick={() => handleConnect(item)}
                         >
-                          {((item.itemType === "Found" || item.type === "Found") && "💬 Secure Connect") || "📞 Contact Owner"}
+                          Connect
                         </button>
                       </div>
                     )}

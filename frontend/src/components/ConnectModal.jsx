@@ -59,7 +59,7 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
             const res = await apiFetch('/api/connections/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ itemId: item._id, verification: draftRequest.verification, templateMessage: formData.message })
+                body: JSON.stringify({ itemId: item._id, verification: draftRequest.verification, templateMessage })
             });
 
             if (res.ok) {
