@@ -79,6 +79,38 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
         }
     };
 
+    const handleClaim = async () => {
+        if (!confirm('Are you sure this item belongs to you? This will freeze the item and notify the finder.')) return;
+
+        setLoading(true);
+        try {
+            const res = await apiFetch('/api/claim/freeze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                body: JSON.stringify({ itemId: item._id })
+            });
+
+            if (res.ok) {
+                toast.success('Item claimed! usage of messaging enabled.');
+                // Proceed to message flow automatically or just update state?
+                // User said "then it should show the message option". 
+                // Currently message option is already visible. 
+                // We will just proceed to send the message if they typed one, or just let them type now.
+                // But let's trigger the message send logic if they have content?
+                // Or maybe just refresh the item status?
+                // For now, let's keep the modal open but maybe disable the claim button (since it's now frozen).
+                // Actually, let's just let them send the message now.
+            } else {
+                toast.error(res.data?.error || 'Failed to claim item');
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error('Error claiming item');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden relative">
@@ -98,6 +130,18 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                     </div>
 
                     <div className="space-y-3">
+                        {/* Claim Button */}
+                        {!isOwnItem && (
+                            <button
+                                onClick={handleClaim}
+                                disabled={loading || item.status === 'Frozen'}
+                                className={`w-full py-2.5 rounded-lg font-bold text-white mb-2 transition 
+                             ${item.status === 'Frozen' ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                            >
+                                {item.status === 'Frozen' ? 'Item Frozen (Claimed)' : '✋ This item belongs to me'}
+                            </button>
+                        )}
+
                         <div>
                             <label className="text-sm font-medium text-gray-700">Item Color</label>
                             <input name="color" value={formData.color} onChange={handleChange} placeholder="e.g. Red" className="w-full border rounded-lg p-2.5 mt-1" />

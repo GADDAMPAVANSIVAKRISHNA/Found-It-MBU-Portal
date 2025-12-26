@@ -46,6 +46,7 @@ router.get('/', auth, async (req, res) => {
         approvalStatus: { $ne: "removed" }
       })
         .sort({ createdAt: -1 })
+        .populate('claimedBy', 'name email contactNumber rollNumber')
         .lean()
     ]);
 

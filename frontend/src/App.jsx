@@ -10,6 +10,8 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import PrivateRoute from "./components/PrivateRoute";
 
+import ActionPopup from "./components/ActionPopup";
+
 // Pages
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -42,6 +44,7 @@ function App() {
       <Router>
         <div className="min-h-screen">
           <Navbar />
+          <ActionPopup />
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
           <main className="min-h-screen">
             <Suspense fallback={<div className="p-6 text-center">Loading...</div>}>

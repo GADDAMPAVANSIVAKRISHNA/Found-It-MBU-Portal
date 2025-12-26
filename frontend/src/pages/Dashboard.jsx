@@ -316,7 +316,12 @@ const Dashboard = () => {
                         ) : "—"}
                       </td>
                       <td className="py-2 px-3 text-gray-600">
-                        {it.confirmedBy || "—"}
+                        {it.confirmedBy || (it.claimedBy ? (
+                          <div className="flex flex-col text-xs">
+                            <span className="font-semibold text-blue-600">{it.claimedBy.name}</span>
+                            <span>{it.claimedBy.email}</span>
+                          </div>
+                        ) : "—")}
                       </td>
                       <td className="py-2 px-3">
                         {(it.status || 'Active') === 'Active' ? (

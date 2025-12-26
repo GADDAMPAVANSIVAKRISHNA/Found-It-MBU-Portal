@@ -309,10 +309,14 @@ const Gallery = () => {
                     {user?.uid !== item.userId && (
                       <div className="flex">
                         <button
-                          className="w-full bg-green-600 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-green-700 transition flex items-center justify-center gap-1"
+                          disabled={item.status === 'Frozen' || item.status === 'Claimed' || item.status === 'Returned'}
+                          className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm transition flex items-center justify-center gap-1 ${item.status === 'Frozen' || item.status === 'Claimed' || item.status === 'Returned'
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-green-600 hover:bg-green-700 text-white'
+                            }`}
                           onClick={() => handleConnect(item)}
                         >
-                          Connect
+                          {item.status === 'Frozen' ? '❄️ Item Frozen' : 'Connect'}
                         </button>
                       </div>
                     )}
