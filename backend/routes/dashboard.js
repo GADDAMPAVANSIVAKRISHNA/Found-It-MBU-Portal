@@ -46,9 +46,15 @@ router.get('/', auth, async (req, res) => {
         approvalStatus: { $ne: "removed" }
       })
         .sort({ createdAt: -1 })
-        .populate('claimedBy', 'name email contactNumber rollNumber')
+        .populate({ path: 'claimedBy', model: 'User', select: 'name email contactNumber rollNumber' })
         .lean()
     ]);
+
+    console.log("Dashboard Debug:");
+    console.log("UserID:", userId);
+    console.log("User Found:", user ? user.email : "NO USER");
+    console.log("Lost Items Count:", myLostItems.length);
+    console.log("Found Items Count:", myFoundItems.length);
 
     // ===============================
     // FINAL RESPONSE (Frontend expects THIS)

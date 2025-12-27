@@ -214,6 +214,25 @@ If you forgot your password, use "Reset here" link:
 
 ---
 
+## 🛠 Claim / Freeze flow fix (New)
+
+**What I changed:**
+- Fixed the "This item belongs to me" flow so that when a user claims (freezes) an item:
+  - Backend sets the item's `status` to `Frozen` and stores `claimedBy`.
+  - A notification is created for the finder.
+  - The frontend updates the list/details view immediately for the user who claimed the item.
+  - Messaging is now restricted so that when an item is frozen only the claimant can send verification messages.
+- Fixed a bug where the message payload sent to `/api/connections/request` used an undefined `templateMessage` variable (now we send `formData.message`).
+
+**How to verify:**
+1. Start backend & frontend
+2. As user A (finder) create or locate a found item
+3. As user B (claimer) open the item and click "This item belongs to me"
+4. Confirm: claim succeeds, button becomes disabled, and the claimant can send messages
+5. As user C (another user) confirm the item shows as frozen and messaging fields are disabled
+
+---
+
 ## ✨ You're All Set!
 
 The fixes are now in place. Try logging in following the steps above. If you encounter any new error, check the troubleshooting documents or the browser console for specific error messages.

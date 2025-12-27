@@ -35,6 +35,7 @@ const FoundItemSchema = new mongoose.Schema({
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   badge: { type: String, default: null },
   confirmedBy: { type: String, default: null },
+  claimedBy: { type: String, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 

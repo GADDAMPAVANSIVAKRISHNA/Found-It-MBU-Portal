@@ -114,6 +114,8 @@ const ReportLost = () => {
       }
 
       toast.success('Lost item reported successfully!', { position: 'top-center' });
+      // Notify other pages (e.g., Dashboard) to refresh
+      window.dispatchEvent(new Event('data-updated'));
 
     } catch (error) {
       console.log(error);

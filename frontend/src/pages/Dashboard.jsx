@@ -30,46 +30,48 @@ const Dashboard = () => {
       }
 
       // ---------------------------
-      // FIXED: Fetch dashboard data
+      // REVERTED: Fetch individual data points (Legacy Pattern)
       // ---------------------------
-      const res = await apiFetch("/api/dashboard", { method: "GET" });
+      const [userRes, itemsRes, statsRes] = await Promise.all([
+        apiFetch("/api/users/me"),
+        apiFetch("/api/user/items"),
+        apiFetch("/api/user/stats")
+      ]);
 
-      if (!res.ok || !res.data) {
-        console.log("Dashboard API Response:", res);
-        setLoading(false);
-        return;
-      }
+      if (!userRes.ok) throw new Error("Failed to load profile");
 
-      // Safely extract values
-      const profile = res.data.profile || {};
-      const userItems = [
-        ...(res.data.myLostItems || []).map((it) => ({ ...it, itemType: "Lost" })),
-        ...(res.data.myFoundItems || []).map((it) => ({ ...it, itemType: "Found" }))
-      ].map((it) => ({
+      // 1. Set User Data
+      setUserData(userRes.data);
+
+      // 2. Set Items (Merge Lost & Found)
+      const myLost = (itemsRes.data?.lost || []).map(i => ({ ...i, itemType: 'Lost' }));
+      const myFound = (itemsRes.data?.found || []).map(i => ({ ...i, itemType: 'Found' }));
+
+      const allItems = [...myLost, ...myFound].map(it => ({
         ...it,
         _id: typeof it._id === 'string' ? it._id : (it._id && it._id.toString ? it._id.toString() : String(it._id)),
       }));
 
       // Sort recent first
-      userItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      allItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setItems(allItems);
 
-      setUserData(profile);
+      // 3. Set Stats
+      setStats(itemsRes.data?.stats || statsRes.data?.stats || { lost: 0, found: 0 });
 
       // Pre-fill edit modal
       setEditData({
-        fullName: profile.name || "",
-        branch: profile.branch || "",
-        year: profile.year || "",
-        gender: profile.gender || "",
+        fullName: userRes.data.name || "",
+        branch: userRes.data.branch || "",
+        year: userRes.data.year || "",
+        gender: userRes.data.gender || "",
       });
-
-      setStats(res.data.stats || { lost: 0, found: 0 });
-      setItems(userItems);
 
       setLoading(false);
 
     } catch (error) {
       console.error("Dashboard fetch error:", error);
+      toast.error("Error loading dashboard data");
       setLoading(false);
     }
   };

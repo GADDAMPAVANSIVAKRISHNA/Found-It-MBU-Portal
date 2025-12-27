@@ -515,8 +515,10 @@ const ItemDetails = () => {
         <ConnectModal
           item={item}
           onClose={() => setShowConnectModal(false)}
-          onSuccess={() => {
-            // Optional: Reload item or navigate
+          onSuccess={(updatedItem) => {
+            // Update local item state so the UI reflects frozen/claimed status immediately
+            if (updatedItem) setItem(prev => ({...prev, ...updatedItem}));
+            setShowConnectModal(false);
           }}
         />
       )}

@@ -404,9 +404,10 @@ const Gallery = () => {
           <ConnectModal
             item={connectItem}
             onClose={() => setConnectItem(null)}
-            onSuccess={() => {
+            onSuccess={(updatedItem) => {
+              // Replace the specific item in local state so other users see it as frozen after claim
+              setItems(prev => prev.map(it => (String(it._id) === String(updatedItem._id) ? updatedItem : it)));
               setConnectItem(null);
-              // Optional: refresh or toast is handled in modal
             }}
           />
         )}

@@ -22,11 +22,24 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
         return possibleUserIds.includes(String(item.userId));
     })();
 
+    // Is current user the claimant (the one who froze the item)
+    const isClaimant = (() => {
+        if (!user || !item || !item.claimedBy) return false;
+        const possibleUserIds = [user._id, user.uid, user.firebaseUid, user.id].filter(Boolean).map(String);
+        return possibleUserIds.includes(String(item.claimedBy));
+    })();
+
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async () => {
         if (!formData.message) return toast.error('Please enter a message');
         if (!formData.color || !formData.mark || !formData.location) return toast.error('Please fill all verification details');
+
+        // If the item is frozen and the current user is not the claimant, disallow messaging
+        if (item?.status === 'Frozen' && !isClaimant) {
+            toast.error('Item is frozen — only the claimant can send verification messages');
+            return;
+        }
 
         if (isOwnItem) {
             toast.error('You cannot contact your own item.');
@@ -59,14 +72,14 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
             const res = await apiFetch('/api/connections/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ itemId: item._id, verification: draftRequest.verification, templateMessage })
+                body: JSON.stringify({ itemId: item._id, verification: draftRequest.verification, templateMessage: formData.message })
             });
 
             if (res.ok) {
                 // Update URL with real request id so Messages can fetch & replace
                 navigate(`/messages?requestId=${res.data.request._id}`, { replace: true });
                 toast.success('Message sent');
-                onSuccess && onSuccess(res.data.request);
+                // We intentionally do NOT call onSuccess here to avoid confusing callers (onSuccess is used to update item status when claiming)
             } else {
                 const serverMsg = res.data?.message || res.data?.error || 'Failed to send request';
                 toast.error(serverMsg);
@@ -91,15 +104,13 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
             });
 
             if (res.ok) {
-                toast.success('Item claimed! usage of messaging enabled.');
-                // Proceed to message flow automatically or just update state?
-                // User said "then it should show the message option". 
-                // Currently message option is already visible. 
-                // We will just proceed to send the message if they typed one, or just let them type now.
-                // But let's trigger the message send logic if they have content?
-                // Or maybe just refresh the item status?
-                // For now, let's keep the modal open but maybe disable the claim button (since it's now frozen).
-                // Actually, let's just let them send the message now.
+                const updatedItem = res.data?.item || {};
+                toast.success('Item claimed! You can now message the finder.');
+
+                // Propagate updated item to parent so other users will see the frozen status
+                onSuccess && onSuccess(updatedItem);
+
+                // keep modal open so claimant can fill verification details & send message
             } else {
                 toast.error(res.data?.error || 'Failed to claim item');
             }
@@ -142,29 +153,33 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                             </button>
                         )}
 
+                        {item?.status === 'Frozen' && !isClaimant && (
+                            <div className="p-2 bg-yellow-50 border border-yellow-100 text-yellow-800 rounded mb-2 text-sm">This item has been frozen (claimed) — only the claimant can send verification messages.</div>
+                        )}
+
                         <div>
                             <label className="text-sm font-medium text-gray-700">Item Color</label>
-                            <input name="color" value={formData.color} onChange={handleChange} placeholder="e.g. Red" className="w-full border rounded-lg p-2.5 mt-1" />
+                            <input name="color" value={formData.color} onChange={handleChange} placeholder="e.g. Red" className="w-full border rounded-lg p-2.5 mt-1" disabled={item?.status === 'Frozen' && !isClaimant} />
                         </div>
 
                         <div>
                             <label className="text-sm font-medium text-gray-700">Unique Mark / Description</label>
-                            <textarea name="mark" value={formData.mark} onChange={handleChange} placeholder="e.g. Scratch on back" rows="2" className="w-full border rounded-lg p-2.5 mt-1" />
+                            <textarea name="mark" value={formData.mark} onChange={handleChange} placeholder="e.g. Scratch on back" rows="2" className="w-full border rounded-lg p-2.5 mt-1" disabled={item?.status === 'Frozen' && !isClaimant} />
                         </div>
 
                         <div>
                             <label className="text-sm font-medium text-gray-700">Lost Location (Approx)</label>
-                            <input name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Library 2nd Floor" className="w-full border rounded-lg p-2.5 mt-1" />
+                            <input name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Library 2nd Floor" className="w-full border rounded-lg p-2.5 mt-1" disabled={item?.status === 'Frozen' && !isClaimant} />
                         </div>
 
                         <div>
                             <label className="text-sm font-medium text-gray-700">Message</label>
-                            <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Hi — I believe this is mine. I can verify ownership..." rows="3" className="w-full border rounded-lg p-2.5 mt-1" />
+                            <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Hi — I believe this is mine. I can verify ownership..." rows="3" className="w-full border rounded-lg p-2.5 mt-1" disabled={item?.status === 'Frozen' && !isClaimant} />
                         </div>
 
                         <div className="flex gap-3 pt-2">
                             <button onClick={onClose} className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg">Cancel</button>
-                            <button onClick={handleSubmit} disabled={loading || isOwnItem} className="w-2/3 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg flex items-center justify-center">
+                            <button onClick={handleSubmit} disabled={loading || isOwnItem || (item?.status === 'Frozen' && !isClaimant)} className="w-2/3 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg flex items-center justify-center">
                                 {loading ? <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span> : 'Send Message'}
                             </button>
                         </div>

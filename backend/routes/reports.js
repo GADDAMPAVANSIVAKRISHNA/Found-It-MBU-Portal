@@ -24,7 +24,7 @@ router.post('/report-lost', auth, upload.single('image'), async (req, res) => {
     console.log('📷 File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
 
     const { title, description, location, date, contactNumber, category, subcategory } = req.body;
-    const userId = req.user?.id;
+    const userId = req.userId;
     const userName = req.user?.name || req.header('x-user-name') || '';
     const userEmail = req.user?.email || req.header('x-user-email') || '';
     let imageUrl = '';
@@ -75,7 +75,7 @@ router.post('/report-found', auth, upload.single('image'), async (req, res) => {
     }
 
     const { title, description, location, date, contactNumber, category, subcategory } = req.body;
-    const userId = req.user?.id;
+    const userId = req.userId;
     const userName = req.user?.name || req.header('x-user-name') || '';
     const userEmail = req.user?.email || req.header('x-user-email') || '';
     let imageUrl = '';

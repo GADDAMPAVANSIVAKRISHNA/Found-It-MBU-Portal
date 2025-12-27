@@ -22,8 +22,8 @@ module.exports = async (req, res, next) => {
       let user = await User.findOne({ firebaseUid: decoded.uid });
 
       if (!user) {
-        // Try email match
-        user = await User.findOne({ email: decoded.email });
+        // Try email match (case-insensitive)
+        user = await User.findOne({ email: { $regex: new RegExp(`^${decoded.email}$`, 'i') } });
 
         if (user) {
           user.firebaseUid = decoded.uid;
