@@ -136,7 +136,17 @@ router.post('/freeze', auth, async (req, res) => {
     if (!itemId) return res.status(400).json({ error: 'Item ID required' });
 
     const cleanId = itemId.includes('_') ? itemId.split('_')[1] : itemId;
-    const item = await FoundItem.findById(cleanId);
+
+    // Check FoundItem first
+    let item = await FoundItem.findById(cleanId);
+    let itemModel = 'Found';
+
+    // If not found, check LostItem
+    const LostItem = require('../models/lostItem');
+    if (!item) {
+      item = await LostItem.findById(cleanId);
+      itemModel = 'Lost';
+    }
 
     if (!item) return res.status(404).json({ error: 'Item not found' });
     if (item.status !== 'Active') return res.status(400).json({ error: 'Item is not available for claim' });
@@ -151,9 +161,38 @@ router.post('/freeze', auth, async (req, res) => {
       userId: item.userId,
       type: 'item_frozen',
       title: 'Item Claimed!',
-      message: 'Someone has claimed your found item. Please check your messages.',
+      message: itemModel === 'Found' ? 'Someone has claimed your found item.' : 'Someone found your lost item!',
       itemId: item._id.toString()
     });
+
+    // AUTO-CREATE a ConnectionRequest so messaging can start instantly between claimant and finder
+    try {
+      const ConnectionRequest = require('../models/ConnectionRequest');
+      const existing = await ConnectionRequest.findOne({ finderId: item.userId, claimantId: req.userId, $or: [{ itemId: item._id.toString() }, { itemId: item._id }] });
+      if (!existing) {
+        const conn = new ConnectionRequest({
+          finderId: item.userId,
+          claimantId: req.userId,
+          itemId: item._id.toString(),
+          status: 'accepted',
+          verification: { color: 'N/A', mark: 'N/A', location: 'N/A' },
+          messages: []
+        });
+        await conn.save();
+
+        // Notify finder that a connection exists
+        await Notification.create({
+          userId: item.userId,
+          type: 'connection_request',
+          title: 'New Connection (Claim)',
+          message: `A user has claimed the item "${item.title}" and a private conversation has been opened.`,
+          itemId: item._id.toString(),
+          claimId: conn._id.toString()
+        });
+      }
+    } catch (e) {
+      console.error('Failed to auto-create ConnectionRequest after freeze', e);
+    }
 
     return res.json({ success: true, message: 'Item frozen for you', item });
   } catch (err) {
@@ -216,9 +255,25 @@ router.post('/confirm-return', auth, async (req, res) => {
     if (!item) return res.status(404).json({ error: 'Item not found or unauthorized' });
 
     item.status = 'Returned';
-    // badge logic is handled in items.js confirm route, maybe we call that or duplicate here?
-    // Requirement: "make it as returned... and freeze that item [logic seems mixed in prompt, but goal is finalized]"
-    // The prompt says "if yes then make it as returned... and freeze that item". 'Returned' is the final state.
+
+    // Mark related connection requests as blocked and notify participants
+    try {
+      const ConnectionRequest = require('../models/ConnectionRequest');
+      const rawId = String(item._id);
+      // Update any connection requests that reference this item
+      const updated = await ConnectionRequest.updateMany(
+        { $or: [{ itemId: rawId }, { itemId: { $regex: rawId } }] },
+        { status: 'blocked', updatedAt: Date.now() }
+      );
+      // Create notifications for involved users
+      const affected = await ConnectionRequest.find({ $or: [{ itemId: rawId }, { itemId: { $regex: rawId } }] });
+      for (const r of affected) {
+        await Notification.create({ userId: r.finderId, type: 'item_status', title: 'Conversation closed', message: 'This item has been marked returned and messaging is now closed.', itemId: item._id.toString(), claimId: r._id.toString() });
+        await Notification.create({ userId: r.claimantId, type: 'item_status', title: 'Conversation closed', message: 'This item has been marked returned and messaging is now closed.', itemId: item._id.toString(), claimId: r._id.toString() });
+      }
+    } catch (err) {
+      console.error('Error while blocking connections on confirm-return:', err);
+    }
 
     await item.save();
     return res.json({ success: true, message: 'Item marked as returned' });
@@ -247,6 +302,24 @@ router.post('/confirm-receipt', auth, async (req, res) => {
 
     if (item.status !== 'Returned') {
       item.status = 'Returned';
+
+      // Block any conversations for this item
+      try {
+        const ConnectionRequest = require('../models/ConnectionRequest');
+        const rawId = String(item._id);
+        const updated = await ConnectionRequest.updateMany(
+          { $or: [{ itemId: rawId }, { itemId: { $regex: rawId } }] },
+          { status: 'blocked', updatedAt: Date.now() }
+        );
+        const affected = await ConnectionRequest.find({ $or: [{ itemId: rawId }, { itemId: { $regex: rawId } }] });
+        for (const r of affected) {
+          await Notification.create({ userId: r.finderId, type: 'item_status', title: 'Conversation closed', message: 'This item has been marked returned and messaging is now closed.', itemId: item._id.toString(), claimId: r._id.toString() });
+          await Notification.create({ userId: r.claimantId, type: 'item_status', title: 'Conversation closed', message: 'This item has been marked returned and messaging is now closed.', itemId: item._id.toString(), claimId: r._id.toString() });
+        }
+      } catch (err) {
+        console.error('Error while blocking connections on confirm-receipt:', err);
+      }
+
       await item.save();
     }
 

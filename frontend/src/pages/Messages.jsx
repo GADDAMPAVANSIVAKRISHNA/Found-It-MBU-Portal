@@ -18,6 +18,7 @@ const Messages = () => {
     const [newMessage, setNewMessage] = useState('');
 
     useEffect(() => {
+        // ... (existing logic for draft/requestId) ...
         // If coming from ConnectModal with a draft request, add it immediately
         if (location.state && location.state.draftRequest) {
             const draft = location.state.draftRequest;
@@ -26,42 +27,69 @@ const Messages = () => {
                 return [draft, ...prev];
             });
             setSelectedRequest(draft);
-            // clear state so refresh won't keep reapplying
             navigate(location.pathname, { replace: true, state: {} });
             setLoading(false);
-            // Also kick off a background refresh to pick up the real request if it was created
             fetchRequests();
-            return;
+        } else {
+            const params = new URLSearchParams(location.search);
+            const requestId = params.get('requestId');
+            fetchRequests(requestId);
         }
 
-        // If URL has requestId param, fetch and select
-        const params = new URLSearchParams(location.search);
-        const requestId = params.get('requestId');
+        // ============================================
+        // REAL-TIME POLLING (Every 3 seconds)
+        // ============================================
+        const interval = setInterval(() => {
+            // Pass null to not forcibly re-select, just update data
+            fetchRequests(null, true);
+        }, 3000);
 
-        fetchRequests(requestId);
+        return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const fetchRequests = async (selectRequestId) => {
+    const fetchRequests = async (selectRequestId, isBackground = false) => {
         try {
             const res = await apiFetch('/api/connections/my-requests');
             if (res.ok) {
-                setRequests(res.data);
-                if (selectRequestId) {
-                    const found = res.data.find(r => String(r._id) === String(selectRequestId));
-                    if (found) {
-                        setSelectedRequest(found);
-                        // If there are optimistic messages queued (from draft), flush them
-                        setTimeout(() => flushOptimisticMessages(found), 0);
+                // If background update, deep check if we need to update to avoid render flicker
+                if (isBackground) {
+                    setRequests(prev => {
+                        // Simple check: if length differs or last message differ. 
+                        // For now just always update to be safe, React diffing handles rest.
+                        return res.data;
+                    });
+
+                    // Silently update selected request content if it exists
+                    setSelectedRequest(prev => {
+                        if (!prev) return null;
+                        const found = res.data.find(r => r._id === prev._id);
+                        if (found) {
+                            // Only update if messages count changed to avoid scroll jumping? 
+                            // Actually we want new messages to appear.
+                            // We merge optimistic messages if any are still pending
+                            return found;
+                        }
+                        return prev;
+                    });
+                } else {
+                    // Initial load behavior
+                    setRequests(res.data);
+                    if (selectRequestId) {
+                        const found = res.data.find(r => String(r._id) === String(selectRequestId));
+                        if (found) {
+                            setSelectedRequest(found);
+                            setTimeout(() => flushOptimisticMessages(found), 0);
+                        }
+                    } else if (!selectedRequest && res.data.length > 0) {
+                        setSelectedRequest(res.data[0]);
                     }
-                } else if (!selectedRequest && res.data.length > 0) {
-                    setSelectedRequest(res.data[0]);
                 }
             }
         } catch (error) {
             console.error(error);
         } finally {
-            setLoading(false);
+            if (!isBackground) setLoading(false);
         }
     };
 
@@ -255,8 +283,16 @@ const Messages = () => {
 
                             {/* Input Area - Free text + Send */}
                             <div className="p-4 bg-white border-t flex items-center gap-3">
-                                <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type your message..." className="flex-1 border rounded-full px-4 py-2" />
-                                <button onClick={handleSendMessage} disabled={!newMessage || sending} className="bg-blue-600 text-white px-4 py-2 rounded-full">{sending ? 'Sending...' : 'Send'}</button>
+                                { (selectedRequest.status !== 'accepted' || selectedRequest.itemStatus === 'Returned') ? (
+                                    <div className="flex-1 text-center text-gray-500">
+                                        { selectedRequest.itemStatus === 'Returned' ? 'Messaging closed — this item has been marked returned.' : 'Messaging is disabled for this conversation.' }
+                                    </div>
+                                ) : (
+                                    <>
+                                        <input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type your message..." className="flex-1 border rounded-full px-4 py-2" />
+                                        <button onClick={handleSendMessage} disabled={!newMessage || sending} className="bg-blue-600 text-white px-4 py-2 rounded-full">{sending ? 'Sending...' : 'Send'}</button>
+                                    </>
+                                ) }
                             </div>
 
                         </>

@@ -93,7 +93,7 @@ const Home = () => {
     <div className="home-container">
       <div className="hero-section text-center">
         <h1 className="hero-title">
-          Found-It — MBU Lost & Found
+          Found-It — MBU Campus Edition
         </h1>
         <div className="hero-subtitle-wrapper">
           <div className="hero-subtitle-glass">

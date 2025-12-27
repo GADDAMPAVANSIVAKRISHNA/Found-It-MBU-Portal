@@ -305,22 +305,87 @@ const Gallery = () => {
                       {item.description}
                     </p>
 
-                    {/* Buttons - Hidden if owner */}
-                    {user?.uid !== item.userId && (
-                      <div className="flex">
-                        <button
-                          disabled={item.status === 'Frozen' || item.status === 'Claimed' || item.status === 'Returned'}
-                          className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm transition flex items-center justify-center gap-1 ${item.status === 'Frozen' || item.status === 'Claimed' || item.status === 'Returned'
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-green-600 hover:bg-green-700 text-white'
-                            }`}
-                          onClick={() => handleConnect(item)}
-                        >
-                          {item.status === 'Frozen' ? '❄️ Item Frozen' : 'Connect'}
-                        </button>
-                      </div>
-                    )}
+                    {/* Action Buttons & Status Badges */}
+                    <div className="flex w-full mt-2 flex-col gap-2">
+                      {(() => {
+                        const currentUserId = user ? String(user._id || user.uid || user.id || '') : '';
+                        const itemUserId = String(item.userId || '');
+                        const itemClaimedBy = String(item.claimedBy || '');
 
+                        const isPoster = currentUserId && currentUserId === itemUserId;
+                        const isResponder = currentUserId && currentUserId === itemClaimedBy;
+
+                        // Check if this user is the "Receiver" who should confirm receipt
+                        // Lost Item -> Poster (Owner) receives it back.
+                        // Found Item -> Responder (Claimant) receives it.
+                        const isReceiver = (item.itemType === 'Lost' && isPoster) || (item.itemType === 'Found' && isResponder);
+
+                        // 1. Returned Status (Highest Priority)
+                        if (item.status === 'Returned') {
+                          return (
+                            <span className="w-full px-3 py-2 rounded text-sm bg-gray-100 text-gray-500 border border-gray-200 text-center italic font-medium">
+                              Item Returned
+                            </span>
+                          );
+                        }
+
+                        // 2. Claimed/Frozen Status
+                        if (item.status === 'Frozen' || item.status === 'Claimed') {
+                          if (isPoster || isResponder) {
+                            const label = isPoster
+                              ? (item.itemType === 'Lost' ? 'Message Finder' : 'Message Claimant')
+                              : (item.itemType === 'Lost' ? 'Message Owner' : 'Message Finder');
+
+                            return (
+                              <div className="flex flex-col gap-2 w-full">
+                                <button
+                                  className="w-full px-3 py-2 rounded text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2"
+                                  onClick={() => handleConnect(item)}
+                                >
+                                  ✉️ {label}
+                                </button>
+
+                                {/* Confirmation Button for Receiver */}
+                                {isReceiver && (
+                                  <button
+                                    className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2"
+                                    onClick={() => handleConfirm(item)}
+                                  >
+                                    ✅ I Received It
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          } else {
+                            // Public View
+                            return (
+                              <span className="w-full px-3 py-2 rounded text-sm bg-yellow-50 text-yellow-700 border border-yellow-200 text-center font-medium">
+                                Claimed
+                              </span>
+                            );
+                          }
+                        }
+
+                        // 3. Active Status
+                        // Logic: Hide for Poster, Show 'Connect' for others
+                        if (isPoster) {
+                          return (
+                            <span className="w-full px-3 py-2 rounded text-sm bg-blue-50 text-blue-600 border border-blue-100 text-center font-medium">
+                              Your Post
+                            </span>
+                          );
+                        } else {
+                          return (
+                            <button
+                              className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2"
+                              onClick={() => handleConnect(item)}
+                            >
+                              Connect
+                            </button>
+                          );
+                        }
+                      })()}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -407,7 +472,8 @@ const Gallery = () => {
             onSuccess={(updatedItem) => {
               // Replace the specific item in local state so other users see it as frozen after claim
               setItems(prev => prev.map(it => (String(it._id) === String(updatedItem._id) ? updatedItem : it)));
-              setConnectItem(null);
+              // UPDATE current modal item so it reflects "Frozen" state immediately
+              setConnectItem(updatedItem);
             }}
           />
         )}

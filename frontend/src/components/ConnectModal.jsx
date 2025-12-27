@@ -10,10 +10,7 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
-        message: '',
-        color: '',
-        mark: '',
-        location: ''
+        message: ''
     });
 
     const isOwnItem = (() => {
@@ -29,13 +26,28 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
         return possibleUserIds.includes(String(item.claimedBy));
     })();
 
+    // If Finder opens this modal on a frozen item, we likely want to just go to messages
+    // effectively "View Request"
+    if (isOwnItem && item.status === 'Frozen') {
+        // We can't use useNavigate inside the render body technically, but in effect we can return null and useEffect
+        // better: render a "Go to Messages" view or redirect immediately
+        // Let's do a redirect effect
+        // React.useEffect(() => { navigate('/messages'); onClose(); }, []);
+        // BUT clean way: render a button "Open Chat"
+    }
+
+    // Extract Reporter Info
+    const reportedEmail = item.userEmail || item.email || '';
+    const reportedRollNo = item.rollNumber || (reportedEmail.includes('@') ? reportedEmail.split('@')[0] : 'N/A');
+
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async () => {
         if (!formData.message) return toast.error('Please enter a message');
-        if (!formData.color || !formData.mark || !formData.location) return toast.error('Please fill all verification details');
 
-        // If the item is frozen and the current user is not the claimant, disallow messaging
+        // Validation removed as per request, logic assumes implicit verification by clicking 'claim'
+
+        // If the item is frozen and the current user is not the claimant, disallow messaging (should be blocked by UI anyway)
         if (item?.status === 'Frozen' && !isClaimant) {
             toast.error('Item is frozen — only the claimant can send verification messages');
             return;
@@ -51,6 +63,9 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
         // Optimistic draft request so user immediately sees a chat
         const tempId = `temp-${Date.now()}`;
         const senderId = user && (user._id || user.uid || user.firebaseUid) ? (user._id || user.uid || user.firebaseUid) : 'unknown';
+        // Use hardcoded/dummy verification details to satisfy backend validation
+        const verificationPayload = { color: 'Not Applicable', mark: 'Not Applicable', location: 'Not Applicable' };
+
         const draftRequest = {
             _id: tempId,
             finderId: item.userId,
@@ -58,7 +73,7 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
             itemId: item._id,
             itemTitle: item.title,
             status: 'pending',
-            verification: { color: formData.color, mark: formData.mark, location: formData.location },
+            verification: verificationPayload,
             messages: [{ senderId, text: formData.message, timestamp: new Date().toISOString() }],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -72,14 +87,13 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
             const res = await apiFetch('/api/connections/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ itemId: item._id, verification: draftRequest.verification, templateMessage: formData.message })
+                body: JSON.stringify({ itemId: item._id, verification: verificationPayload, templateMessage: formData.message })
             });
 
             if (res.ok) {
                 // Update URL with real request id so Messages can fetch & replace
                 navigate(`/messages?requestId=${res.data.request._id}`, { replace: true });
                 toast.success('Message sent');
-                // We intentionally do NOT call onSuccess here to avoid confusing callers (onSuccess is used to update item status when claiming)
             } else {
                 const serverMsg = res.data?.message || res.data?.error || 'Failed to send request';
                 toast.error(serverMsg);
@@ -107,10 +121,27 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                 const updatedItem = res.data?.item || {};
                 toast.success('Item claimed! You can now message the finder.');
 
-                // Propagate updated item to parent so other users will see the frozen status
+                // Propagate updated item to parent
                 onSuccess && onSuccess(updatedItem);
 
-                // keep modal open so claimant can fill verification details & send message
+                // Try to open the conversation immediately (a ConnectionRequest is auto-created on freeze)
+                try {
+                    const listRes = await apiFetch('/api/connections/my-requests');
+                    if (listRes.ok && Array.isArray(listRes.data)) {
+                        const found = listRes.data.find(r => String(r.itemId || '').includes(String(updatedItem._id)) || String(r.itemId) === String(updatedItem._id));
+                        if (found) {
+                            // Navigate to Messages and open the conversation
+                            navigate(`/messages?requestId=${found._id}`);
+                        } else {
+                            // If not yet present, just navigate to messages list
+                            navigate('/messages');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not open conversation after claim', e);
+                    navigate('/messages');
+                }
+
             } else {
                 toast.error(res.data?.error || 'Failed to claim item');
             }
@@ -128,7 +159,7 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
 
                 <div className="p-6">
-                    <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center gap-4 mb-6">
                         {item.imageUrl ? (
                             <img src={item.imageUrl} alt={item.title} className="w-16 h-16 object-cover rounded" />
                         ) : (
@@ -136,53 +167,73 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                         )}
                         <div>
                             <h2 className="text-lg font-bold">{item.title}</h2>
-                            <p className="text-xs text-gray-500">Message the finder about this item</p>
+                            <p className="text-xs text-gray-500">Found Item</p>
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        {/* Claim Button */}
-                        {!isOwnItem && (
+                    <div className="space-y-4">
+                        {/* Reporter Details */}
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-1">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Reported By</p>
+                            <p className="text-sm font-medium text-gray-900">Roll No: <span className="text-blue-600">{reportedRollNo}</span></p>
+                            <p className="text-sm text-gray-600 truncate">Email: {reportedEmail || 'N/A'}</p>
+                        </div>
+
+                        {/* STEP 1: Claim Button (If NOT frozen) */}
+                        {!isOwnItem && item.status !== 'Frozen' && (
                             <button
                                 onClick={handleClaim}
-                                disabled={loading || item.status === 'Frozen'}
-                                className={`w-full py-2.5 rounded-lg font-bold text-white mb-2 transition 
-                             ${item.status === 'Frozen' ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                disabled={loading}
+                                className="w-full py-3 rounded-lg font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition hover:scale-[1.02]"
                             >
-                                {item.status === 'Frozen' ? 'Item Frozen (Claimed)' : '✋ This item belongs to me'}
+                                {item.itemType === 'Found' || item.type === 'Found' || (item._id && String(item._id).startsWith('found'))
+                                    ? '✋ This item belongs to me'
+                                    : '🔍 I found this item'}
                             </button>
                         )}
 
-                        {item?.status === 'Frozen' && !isClaimant && (
-                            <div className="p-2 bg-yellow-50 border border-yellow-100 text-yellow-800 rounded mb-2 text-sm">This item has been frozen (claimed) — only the claimant can send verification messages.</div>
+                        {/* Status Message if Frozen/Claimed by SOMEONE ELSE */}
+                        {item.status === 'Frozen' && !isClaimant && !isOwnItem && (
+                            <div className="p-3 bg-yellow-50 text-yellow-800 rounded text-sm text-center font-medium">
+                                This item has been claimed by someone else.
+                            </div>
                         )}
 
-                        <div>
-                            <label className="text-sm font-medium text-gray-700">Item Color</label>
-                            <input name="color" value={formData.color} onChange={handleChange} placeholder="e.g. Red" className="w-full border rounded-lg p-2.5 mt-1" disabled={item?.status === 'Frozen' && !isClaimant} />
-                        </div>
+                        {/* STEP 2: Message Input (Only if Frozen AND (Claimant OR Owner)) */}
+                        {item.status === 'Frozen' && (isClaimant || isOwnItem) && (
+                            <div className="animate-fade-in-up">
+                                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                    {isOwnItem
+                                        ? (item.itemType === 'Lost' ? 'Send Message to Finder' : 'Send Message to Claimant')
+                                        : (item.itemType === 'Lost' ? 'Send Message to Owner' : 'Send Message to Finder')
+                                    }
+                                </label>
+                                <textarea
+                                    name="message"
+                                    value={formData.message}
+                                    onChange={handleChange}
+                                    placeholder="Hi — I claimed this item. When can I collect it?"
+                                    rows="3"
+                                    className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                />
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={loading}
+                                    className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg flex items-center justify-center font-semibold shadow-sm transition hover:scale-[1.02]"
+                                >
+                                    {loading ? <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span> : 'Send Message'}
+                                </button>
+                            </div>
+                        )}
 
-                        <div>
-                            <label className="text-sm font-medium text-gray-700">Unique Mark / Description</label>
-                            <textarea name="mark" value={formData.mark} onChange={handleChange} placeholder="e.g. Scratch on back" rows="2" className="w-full border rounded-lg p-2.5 mt-1" disabled={item?.status === 'Frozen' && !isClaimant} />
-                        </div>
+                        {/* If item has been returned/resolved, show a closed message */}
+                        {item.status === 'Returned' && (
+                            <div className="p-3 bg-gray-50 rounded text-sm text-gray-700 text-center">
+                                This item has been marked as returned — messaging for this item is now closed.
+                            </div>
+                        )}
 
-                        <div>
-                            <label className="text-sm font-medium text-gray-700">Lost Location (Approx)</label>
-                            <input name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Library 2nd Floor" className="w-full border rounded-lg p-2.5 mt-1" disabled={item?.status === 'Frozen' && !isClaimant} />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium text-gray-700">Message</label>
-                            <textarea name="message" value={formData.message} onChange={handleChange} placeholder="Hi — I believe this is mine. I can verify ownership..." rows="3" className="w-full border rounded-lg p-2.5 mt-1" disabled={item?.status === 'Frozen' && !isClaimant} />
-                        </div>
-
-                        <div className="flex gap-3 pt-2">
-                            <button onClick={onClose} className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg">Cancel</button>
-                            <button onClick={handleSubmit} disabled={loading || isOwnItem || (item?.status === 'Frozen' && !isClaimant)} className="w-2/3 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg flex items-center justify-center">
-                                {loading ? <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span> : 'Send Message'}
-                            </button>
-                        </div>
+                        {!item.status === 'Frozen' && <div className="text-center text-xs text-gray-400 mt-2">Verify ownership to continue</div>}
                     </div>
                 </div>
             </div>

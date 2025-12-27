@@ -176,7 +176,8 @@ router.get('/my-requests', auth, async (req, res) => {
             return {
                 ...r.toObject(),
                 itemTitle: item ? item.title : 'Unknown Item',
-                itemImage: item ? item.imageUrl : null
+                itemImage: item ? item.imageUrl : null,
+                itemStatus: item ? item.status : null
             };
         }));
 
@@ -268,6 +269,16 @@ router.post('/:id/message', auth, async (req, res) => {
         // Must be accepted
         if (request.status !== 'accepted') {
             return res.status(400).json({ message: 'Connection must be accepted to send messages' });
+        }
+
+        // Check if item is Returned/Resolved - Lock conversation
+        // resolvedItemId logic from previous routes
+        const rawItemId = String(request.itemId || '');
+        const resolvedItemId = rawItemId.includes('_') ? rawItemId.split('_')[1] : rawItemId;
+        const item = await FoundItem.findById(resolvedItemId);
+
+        if (item && item.status === 'Returned') {
+            return res.status(400).json({ message: 'This item is resolved (Returned). messaging is archived.' });
         }
 
         const newMessage = {
