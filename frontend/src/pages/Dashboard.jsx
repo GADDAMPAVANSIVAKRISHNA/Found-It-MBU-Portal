@@ -253,19 +253,19 @@ const Dashboard = () => {
           <div className="user-details-row grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
             <div>
               <span className="text-xs sm:text-sm text-gray-500 uppercase tracking-wide">Email</span>
-              <p className="text-sm sm:text-base font-semibold text-gray-700 break-all">{userData?.email || "—"}</p>
+              <p className="text-sm sm:text-base font-semibold text-gray-700 break-all">{userData?.email || "Not Provided"}</p>
             </div>
             <div>
               <span className="text-xs sm:text-sm text-gray-500 uppercase tracking-wide">Branch</span>
-              <p className="text-sm sm:text-base font-semibold text-indigo-700 break-words">{userData?.branch || "—"}</p>
+              <p className="text-sm sm:text-base font-semibold text-indigo-700 break-words">{userData?.branch || "Not Provided"}</p>
             </div>
             <div>
               <span className="text-xs sm:text-sm text-gray-500 uppercase tracking-wide">Year</span>
-              <p className="text-sm sm:text-base font-semibold text-teal-700">{userData?.year || "—"}</p>
+              <p className="text-sm sm:text-base font-semibold text-teal-700">{userData?.year || "Not Provided"}</p>
             </div>
             <div>
               <span className="text-xs sm:text-sm text-gray-500 uppercase tracking-wide">Gender</span>
-              <p className="text-sm sm:text-base font-semibold text-rose-700">{userData?.gender || "—"}</p>
+              <p className="text-sm sm:text-base font-semibold text-rose-700">{userData?.gender || "Not Provided"}</p>
             </div>
           </div>
         </div>
@@ -317,14 +317,7 @@ const Dashboard = () => {
                           </span>
                         ) : "—"}
                       </td>
-                      <td className="py-2 px-3 text-gray-600">
-                        {it.confirmedBy || (it.claimedBy ? (
-                          <div className="flex flex-col text-xs">
-                            <span className="font-semibold text-blue-600">{it.claimedBy.name}</span>
-                            <span>{it.claimedBy.email}</span>
-                          </div>
-                        ) : "—")}
-                      </td>
+                      <td className="py-2 px-3 text-gray-600">{it.confirmedBy || it.claimedBy || "Not Provided"}</td>
                       <td className="py-2 px-3">
                         {(it.status || 'Active') === 'Active' ? (
                           <div className="flex gap-2">

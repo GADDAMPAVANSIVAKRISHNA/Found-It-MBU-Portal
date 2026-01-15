@@ -145,17 +145,11 @@ const Gallery = () => {
   };
 
   const handleClaim = async (item) => {
-    if (!user) return toast.error('Please login to claim items');
-    try {
-      const res = await apiFetch(`/api/items/${item._id}/claim`, { method: 'POST' });
-      if (!res.ok) return toast.error(res.data?.message || 'Failed to claim');
-      toast.success('Claim submitted — you will be notified on next steps');
-      // Optimistically update UI
-      setItems(prev => prev.map(i => i._id === item._id ? { ...i, status: 'Claimed' } : i));
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to claim item');
+    if (!user) {
+      toast.error('Please login to claim items');
+      return;
     }
+    setConnectItem(item);
   };
 
   const handleConfirm = async (item) => {
@@ -473,7 +467,7 @@ const Gallery = () => {
                         // For found items: Claim Item
                         if (item.itemType === 'Found') {
                           return (
-                            <button className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleClaim(item)}>
+                            <button className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleConnect(item)}>
                               Claim Item
                             </button>
                           );

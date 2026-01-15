@@ -293,6 +293,26 @@ router.post('/:id/message', auth, async (req, res) => {
             claimId: request._id
         });
 
+        try {
+            const recipient = await User.findById(recipientId);
+            const rawItemId = String(request.itemId || '');
+            const resolvedItemId = rawItemId.includes('_') ? rawItemId.split('_')[1] : rawItemId;
+            const item = await FoundItem.findById(resolvedItemId).select('title');
+            const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:5173';
+            const messageLink = `${clientUrl}/messages?requestId=${request._id}`;
+            const subject = 'You have received a new message regarding a Lost & Found item on Found-It';
+            const emailHtml = `
+        <p>Hello ${recipient?.name || 'User'},</p>
+        <p>You have received a new message regarding ${item?.title ? `<strong>${item.title}</strong>` : 'a Lost & Found item'} on Found-It.</p>
+        <p><a href="${messageLink}">Open Messages</a> to view and reply.</p>
+        <br/>
+        <p>– Found-It Team</p>
+      `;
+            if (recipient && recipient.email) {
+                await sendNotificationEmail(recipient.email, subject, emailHtml).catch(() => {});
+            }
+        } catch (_) {}
+
         res.json(request);
     } catch (err) {
         console.error(err);

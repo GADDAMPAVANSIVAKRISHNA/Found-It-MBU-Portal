@@ -166,9 +166,11 @@ router.post('/freeze', auth, async (req, res) => {
     });
 
     // AUTO-CREATE a ConnectionRequest so messaging can start instantly between claimant and finder
+    let connectionRequestId = null;
     try {
       const ConnectionRequest = require('../models/ConnectionRequest');
-      const existing = await ConnectionRequest.findOne({ finderId: item.userId, claimantId: req.userId, $or: [{ itemId: item._id.toString() }, { itemId: item._id }] });
+      let existing = await ConnectionRequest.findOne({ finderId: item.userId, claimantId: req.userId, $or: [{ itemId: item._id.toString() }, { itemId: item._id }] });
+
       if (!existing) {
         const conn = new ConnectionRequest({
           finderId: item.userId,
@@ -179,6 +181,7 @@ router.post('/freeze', auth, async (req, res) => {
           messages: []
         });
         await conn.save();
+        connectionRequestId = conn._id;
 
         // Notify finder that a connection exists
         await Notification.create({
@@ -189,12 +192,19 @@ router.post('/freeze', auth, async (req, res) => {
           itemId: item._id.toString(),
           claimId: conn._id.toString()
         });
+      } else {
+        connectionRequestId = existing._id;
+        // ensure accepted if it wasn't
+        if (existing.status !== 'accepted') {
+          existing.status = 'accepted';
+          await existing.save();
+        }
       }
     } catch (e) {
       console.error('Failed to auto-create ConnectionRequest after freeze', e);
     }
 
-    return res.json({ success: true, message: 'Item frozen for you', item });
+    return res.json({ success: true, message: 'Item frozen for you', item, connectionRequestId });
   } catch (err) {
     console.error('Freeze error:', err);
     return res.status(500).json({ error: err.message });

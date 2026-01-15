@@ -26,10 +26,20 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
     const reportedEmail = item.userEmail || item.email || '';
     const reportedRollNo = item.rollNumber || (reportedEmail.includes('@') ? reportedEmail.split('@')[0] : 'N/A');
 
+    // START of new logic: store connectionRequestId here
+    const [connectionRequestId, setConnectionRequestId] = useState(null);
+
     const handleOpenChat = async () => {
         setLoading(true);
         try {
-            // Fetch my connection requests to find the one for this item
+            // Priority 1: Use the ID we just got from the claim/freeze action
+            if (connectionRequestId) {
+                navigate(`/messages?requestId=${connectionRequestId}`);
+                onClose && onClose();
+                return;
+            }
+
+            // Priority 2: Fetch my connection requests to find the one for this item
             const listRes = await apiFetch('/api/connections/my-requests');
             if (listRes.ok && Array.isArray(listRes.data)) {
                 // Find request for this item
@@ -70,6 +80,9 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
 
             if (res.ok) {
                 const updatedItem = res.data?.item || {};
+                const connId = res.data?.connectionRequestId;
+                if (connId) setConnectionRequestId(connId);
+
                 toast.success('Item claimed! You can now message the finder.');
 
                 // Propagate updated item to parent
