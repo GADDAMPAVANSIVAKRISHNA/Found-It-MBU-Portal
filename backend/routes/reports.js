@@ -185,6 +185,16 @@ router.post('/lost', maybeAuth, upload.single('image'), async (req, res) => {
       title, description, category, subcategory, location, approximateLocation,
       date, dateLost, time, approximateTime, contactNumber, email, whereKept, rollNumber
     } = req.body;
+
+    // Validate Date (No Future Dates)
+    const submittedDate = new Date(dateLost || date);
+    const today = new Date();
+    submittedDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (submittedDate > today) {
+      return res.status(400).json({ success: false, message: 'Future dates are not allowed. Please select today or a past date.' });
+    }
     const doc = new LostItem({
       title,
       description,
@@ -221,6 +231,16 @@ router.post('/found', maybeAuth, upload.single('image'), async (req, res) => {
       title, description, category, subcategory, location,
       date, time, contactNumber, email, whereKept, rollNumber
     } = req.body;
+
+    // Validate Date (No Future Dates)
+    const submittedDate = new Date(date);
+    const today = new Date();
+    submittedDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (submittedDate > today) {
+      return res.status(400).json({ success: false, message: 'Future dates are not allowed. Please select today or a past date.' });
+    }
     const doc = new FoundItem({
       title,
       description,

@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "Backend for Found-It Lost & Found Portal - MBU",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
   "keywords": [
     "lost",
     "found",
@@ -28,7 +24,15 @@
     "mime-types": "^3.0.2",
     "mongoose": "^7.5.0",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.5"
+    "nodemailer": "^6.9.5",
+    "socket.io": "^4.8.0",
+    "nodemon": "^3.0.1"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "clean:test-data": "node scripts/clean-test-data.js",
+    "migrate:statuses": "node scripts/migrate-statuses.js"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

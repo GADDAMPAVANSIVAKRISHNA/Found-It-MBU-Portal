@@ -58,7 +58,9 @@ const ReportFound = () => {
   // FORM VALIDATION
   const validateForm = () => {
     if (!formData.title.trim()) return toast.error('Please enter item title');
+    if (formData.title.trim().length < 3 || formData.title.trim().length > 100) return toast.error('Title must be 3-100 characters');
     if (!formData.description.trim()) return toast.error('Please enter item description');
+    if (formData.description.trim().length < 10) return toast.error('Description must be at least 10 characters');
     if (!formData.location.trim()) return toast.error('Please enter location where item was found');
     if (!formData.dateFound) return toast.error('Please select date found');
     if (!formData.approximateTime) return toast.error('Please select approximate time');

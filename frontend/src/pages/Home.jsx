@@ -10,12 +10,38 @@ const Home = () => {
     users: 0,
     claims: 0
   });
+  const [targets, setTargets] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [hasAnimated, setHasAnimated] = useState(false);
 
   // Use a ref to track animation state without triggering re-renders
   const animationRef = useRef(null);
 
   useEffect(() => {
+    // Fetch stats from backend
+    const fetchStats = async () => {
+      setLoadingStats(true);
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        if (data && data.stats) {
+          setTargets({
+            reported: data.stats.totalItems || 0,
+            returned: data.stats.returnedItems || 0,
+            users: data.stats.users || 0,
+            claims: data.stats.activeClaims || 0
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+    const statsInterval = setInterval(fetchStats, 30000); // refresh every 30s
+
     // Create observer
     const observer = new IntersectionObserver(
       (entries) => {
@@ -51,14 +77,9 @@ const Home = () => {
     setHasAnimated((prev) => {
       if (prev) return true;
 
-      const targets = {
-        reported: 500,
-        returned: 320,
-        users: 1200,
-        claims: 180
-      };
+      const effectiveTargets = targets || { reported: 500, returned: 320, users: 1200, claims: 180 };
 
-      const duration = 2000; // 2 seconds
+      const duration = 1200; // 1.2 seconds
       let startTime = null;
 
       const animate = (timestamp) => {
@@ -70,17 +91,17 @@ const Home = () => {
         const ease = 1 - Math.pow(1 - percentage, 4);
 
         setCounts({
-          reported: Math.floor(targets.reported * ease),
-          returned: Math.floor(targets.returned * ease),
-          users: Math.floor(targets.users * ease),
-          claims: Math.floor(targets.claims * ease)
+          reported: Math.floor(effectiveTargets.reported * ease),
+          returned: Math.floor(effectiveTargets.returned * ease),
+          users: Math.floor(effectiveTargets.users * ease),
+          claims: Math.floor(effectiveTargets.claims * ease)
         });
 
         if (percentage < 1) {
           animationRef.current = requestAnimationFrame(animate);
         } else {
           // Snap to final values
-          setCounts(targets);
+          setCounts(effectiveTargets);
         }
       };
 
@@ -164,19 +185,19 @@ const Home = () => {
           </div>
           <div className="stats-grid">
             <div className="stat-card">
-              <div className="stat-number">{counts.reported}+</div>
+              <div className="stat-number">{loadingStats ? '—' : `${counts.reported}+`}</div>
               <div className="stat-label">Items Reported</div>
             </div>
             <div className="stat-card">
-              <div className="stat-number">{counts.returned}+</div>
+              <div className="stat-number">{loadingStats ? '—' : `${counts.returned}+`}</div>
               <div className="stat-label">Items Returned</div>
             </div>
             <div className="stat-card">
-              <div className="stat-number">{counts.users.toLocaleString()}+</div>
+              <div className="stat-number">{loadingStats ? '—' : `${counts.users.toLocaleString()}+`}</div>
               <div className="stat-label">Registered Users</div>
             </div>
             <div className="stat-card">
-              <div className="stat-number">{counts.claims}+</div>
+              <div className="stat-number">{loadingStats ? '—' : `${counts.claims}+`}</div>
               <div className="stat-label">Active Claims</div>
             </div>
           </div>

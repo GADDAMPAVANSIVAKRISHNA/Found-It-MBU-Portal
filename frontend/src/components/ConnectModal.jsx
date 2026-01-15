@@ -9,10 +9,6 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
     const { token, user } = useAuth();
     const navigate = useNavigate();
 
-    const [formData, setFormData] = useState({
-        message: ''
-    });
-
     const isOwnItem = (() => {
         if (!user || !item) return false;
         const possibleUserIds = [user._id, user.uid, user.firebaseUid, user.id].filter(Boolean).map(String);
@@ -26,81 +22,36 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
         return possibleUserIds.includes(String(item.claimedBy));
     })();
 
-    // If Finder opens this modal on a frozen item, we likely want to just go to messages
-    // effectively "View Request"
-    if (isOwnItem && item.status === 'Frozen') {
-        // We can't use useNavigate inside the render body technically, but in effect we can return null and useEffect
-        // better: render a "Go to Messages" view or redirect immediately
-        // Let's do a redirect effect
-        // React.useEffect(() => { navigate('/messages'); onClose(); }, []);
-        // BUT clean way: render a button "Open Chat"
-    }
-
     // Extract Reporter Info
     const reportedEmail = item.userEmail || item.email || '';
     const reportedRollNo = item.rollNumber || (reportedEmail.includes('@') ? reportedEmail.split('@')[0] : 'N/A');
 
-    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-    const handleSubmit = async () => {
-        if (!formData.message) return toast.error('Please enter a message');
-
-        // Validation removed as per request, logic assumes implicit verification by clicking 'claim'
-
-        // If the item is frozen and the current user is not the claimant, disallow messaging (should be blocked by UI anyway)
-        if (item?.status === 'Frozen' && !isClaimant) {
-            toast.error('Item is frozen — only the claimant can send verification messages');
-            return;
-        }
-
-        if (isOwnItem) {
-            toast.error('You cannot contact your own item.');
-            return;
-        }
-
+    const handleOpenChat = async () => {
         setLoading(true);
-
-        // Optimistic draft request so user immediately sees a chat
-        const tempId = `temp-${Date.now()}`;
-        const senderId = user && (user._id || user.uid || user.firebaseUid) ? (user._id || user.uid || user.firebaseUid) : 'unknown';
-        // Use hardcoded/dummy verification details to satisfy backend validation
-        const verificationPayload = { color: 'Not Applicable', mark: 'Not Applicable', location: 'Not Applicable' };
-
-        const draftRequest = {
-            _id: tempId,
-            finderId: item.userId,
-            claimantId: senderId,
-            itemId: item._id,
-            itemTitle: item.title,
-            status: 'pending',
-            verification: verificationPayload,
-            messages: [{ senderId, text: formData.message, timestamp: new Date().toISOString() }],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
-        // Navigate to messages with draft (instant chat behavior)
-        navigate('/messages', { state: { draftRequest } });
-        onClose && onClose();
-
         try {
-            const res = await apiFetch('/api/connections/request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ itemId: item._id, verification: verificationPayload, templateMessage: formData.message })
-            });
+            // Fetch my connection requests to find the one for this item
+            const listRes = await apiFetch('/api/connections/my-requests');
+            if (listRes.ok && Array.isArray(listRes.data)) {
+                // Find request for this item
+                const found = listRes.data.find(r =>
+                    String(r.itemId || '').includes(String(item._id)) ||
+                    String(r.itemId) === String(item._id)
+                );
 
-            if (res.ok) {
-                // Update URL with real request id so Messages can fetch & replace
-                navigate(`/messages?requestId=${res.data.request._id}`, { replace: true });
-                toast.success('Message sent');
+                if (found) {
+                    navigate(`/messages?requestId=${found._id}`);
+                    onClose && onClose();
+                } else {
+                    toast.error('Connection request not found. Please try again.');
+                    // Fallback
+                    navigate('/messages');
+                }
             } else {
-                const serverMsg = res.data?.message || res.data?.error || 'Failed to send request';
-                toast.error(serverMsg);
+                toast.error('Could not fetch connection details.');
             }
         } catch (err) {
-            console.error('Send request error:', err);
-            toast.error('Network error while sending request');
+            console.error('Error opening chat:', err);
+            toast.error('Failed to open chat.');
         } finally {
             setLoading(false);
         }
@@ -123,25 +74,6 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
 
                 // Propagate updated item to parent
                 onSuccess && onSuccess(updatedItem);
-
-                // Try to open the conversation immediately (a ConnectionRequest is auto-created on freeze)
-                try {
-                    const listRes = await apiFetch('/api/connections/my-requests');
-                    if (listRes.ok && Array.isArray(listRes.data)) {
-                        const found = listRes.data.find(r => String(r.itemId || '').includes(String(updatedItem._id)) || String(r.itemId) === String(updatedItem._id));
-                        if (found) {
-                            // Navigate to Messages and open the conversation
-                            navigate(`/messages?requestId=${found._id}`);
-                        } else {
-                            // If not yet present, just navigate to messages list
-                            navigate('/messages');
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Could not open conversation after claim', e);
-                    navigate('/messages');
-                }
-
             } else {
                 toast.error(res.data?.error || 'Failed to claim item');
             }
@@ -199,29 +131,21 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                             </div>
                         )}
 
-                        {/* STEP 2: Message Input (Only if Frozen AND (Claimant OR Owner)) */}
+                        {/* STEP 2: Message Button (Only if Frozen AND (Claimant OR Owner)) */}
                         {item.status === 'Frozen' && (isClaimant || isOwnItem) && (
                             <div className="animate-fade-in-up">
-                                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                                    {isOwnItem
-                                        ? (item.itemType === 'Lost' ? 'Send Message to Finder' : 'Send Message to Claimant')
-                                        : (item.itemType === 'Lost' ? 'Send Message to Owner' : 'Send Message to Finder')
-                                    }
-                                </label>
-                                <textarea
-                                    name="message"
-                                    value={formData.message}
-                                    onChange={handleChange}
-                                    placeholder="Hi — I claimed this item. When can I collect it?"
-                                    rows="3"
-                                    className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                                />
+                                <p className="text-sm text-center text-green-600 font-medium mb-3">
+                                    Item claimed successfully! You can now message the {isOwnItem ? 'claimant' : (item.itemType === 'Lost' ? 'owner' : 'finder')} to coordinate return.
+                                </p>
                                 <button
-                                    onClick={handleSubmit}
+                                    onClick={handleOpenChat}
                                     disabled={loading}
-                                    className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg flex items-center justify-center font-semibold shadow-sm transition hover:scale-[1.02]"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center font-bold shadow-md transition hover:scale-[1.02]"
                                 >
-                                    {loading ? <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></span> : 'Send Message'}
+                                    💬 Message {isOwnItem
+                                        ? (item.itemType === 'Lost' ? 'Finder' : 'Claimant')
+                                        : (item.itemType === 'Lost' ? 'Owner' : 'Finder')
+                                    }
                                 </button>
                             </div>
                         )}

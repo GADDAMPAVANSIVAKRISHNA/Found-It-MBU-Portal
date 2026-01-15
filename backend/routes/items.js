@@ -27,6 +27,7 @@ const Item = require('../models/item');           // legacy combined model (kept
 const LostItem = require('../models/lostItem');
 const FoundItem = require('../models/foundItem');
 const ClaimedItem = require('../models/ClaimedItem');
+const { normalizeFoundStatus, normalizeLostStatus, isFoundClaimable } = require('../utils/statusUtils');
 
 // -----------------------------
 // Helper: normalize image input
@@ -61,9 +62,28 @@ async function createLostHandler(req, res) {
     // If using multer, file will be in req.file
     const imageUrl = await resolveImageUrl(req.body, req.file);
 
+    // Validate Date (No Future Dates)
+    const dateToCheck = req.body.dateLost || req.body.date || req.body.dateLostISO || new Date();
+    const submittedDate = new Date(dateToCheck);
+    const today = new Date();
+    submittedDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (submittedDate > today) {
+      return res.status(400).json({ success: false, message: 'Future dates are not allowed.' });
+    }
+
     // Validate required
     if (!req.body.title || !req.body.description) {
       return res.status(400).json({ success: false, message: 'Title and description required' });
+    }
+
+    // Basic validation
+    if (typeof req.body.title !== 'string' || req.body.title.trim().length < 3 || req.body.title.trim().length > 100) {
+      return res.status(400).json({ success: false, message: 'Title must be 3-100 characters' });
+    }
+    if (typeof req.body.description !== 'string' || req.body.description.trim().length < 10 || req.body.description.trim().length > 2000) {
+      return res.status(400).json({ success: false, message: 'Description must be 10-2000 characters' });
     }
 
     const payload = {
@@ -74,7 +94,7 @@ async function createLostHandler(req, res) {
       location: req.body.location || req.body.approximateLocation || '',
       date: req.body.dateLost || req.body.date || req.body.dateLostISO || new Date(),
       imageUrl,
-      status: req.body.status || 'Active',
+      status: req.body.status ? normalizeLostStatus(req.body.status) : 'Active',
       rollNumber: req.body.rollNumber || '',
       userId: req.userId || null,
       userName: req.user?.name || req.body.userName || '',
@@ -126,6 +146,17 @@ async function createFoundHandler(req, res) {
   try {
     const imageUrl = await resolveImageUrl(req.body, req.file);
 
+    // Validate Date (No Future Dates)
+    const dateToCheck = req.body.dateFound || req.body.date || new Date();
+    const submittedDate = new Date(dateToCheck);
+    const today = new Date();
+    submittedDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (submittedDate > today) {
+      return res.status(400).json({ success: false, message: 'Future dates are not allowed.' });
+    }
+
     // Image required for found items (enforced here)
     if (!imageUrl && !req.body.image && !req.file) {
       return res.status(400).json({ success: false, message: 'Image mandatory for found items' });
@@ -133,6 +164,14 @@ async function createFoundHandler(req, res) {
 
     if (!req.body.title || !req.body.description) {
       return res.status(400).json({ success: false, message: 'Title and description required' });
+    }
+
+    // Basic validation
+    if (typeof req.body.title !== 'string' || req.body.title.trim().length < 3 || req.body.title.trim().length > 100) {
+      return res.status(400).json({ success: false, message: 'Title must be 3-100 characters' });
+    }
+    if (typeof req.body.description !== 'string' || req.body.description.trim().length < 10 || req.body.description.trim().length > 2000) {
+      return res.status(400).json({ success: false, message: 'Description must be 10-2000 characters' });
     }
 
     const payload = {
@@ -143,7 +182,7 @@ async function createFoundHandler(req, res) {
       location: req.body.location || '',
       date: req.body.dateFound || req.body.date || new Date(),
       imageUrl,
-      status: req.body.status || 'Active',
+      status: req.body.status ? normalizeFoundStatus(req.body.status) : 'Unclaimed',
       whereKept: req.body.whereKept || req.body.where_is_kept || '', // optional
       rollNumber: req.body.rollNumber || '',
       userId: req.userId || null,
@@ -199,7 +238,9 @@ router.get('/items', async (req, res) => {
       q,           // search query (title/description)
       page = 1,
       limit = 20,
-      sort = 'recent'
+      sort = 'recent',
+      type,        // Found or Lost
+      location
     } = req.query;
 
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
@@ -208,7 +249,14 @@ router.get('/items', async (req, res) => {
 
     const commonQuery = {};
     if (category) commonQuery.category = category;
-    if (status) commonQuery.status = status;
+    if (location) commonQuery.location = location;
+
+    // Normalize status per-collection. If status provided, use normalized values
+    let statusParam = null;
+    if (status) {
+      statusParam = String(status).trim();
+    }
+
     if (q) {
       commonQuery.$or = [
         { title: { $regex: q, $options: 'i' } },
@@ -225,20 +273,20 @@ router.get('/items', async (req, res) => {
 
     // Query both collections in parallel
     const [lostDocs, lostCount, foundDocs, foundCount] = await Promise.all([
-      LostItem.find({ ...commonQuery, approvalStatus: { $ne: 'removed' } })
+      LostItem.find({ ...(statusParam ? { ...commonQuery, status: normalizeLostStatus(statusParam) } : { ...commonQuery }), approvalStatus: { $ne: 'removed' } })
         .sort(sortOpt)
         .skip(skip)
         .limit(limitNum)
         .populate('user', 'email')
         .lean(),
-      LostItem.countDocuments({ ...commonQuery, approvalStatus: { $ne: 'removed' } }),
-      FoundItem.find({ ...commonQuery, approvalStatus: { $ne: 'removed' } })
+      LostItem.countDocuments({ ...(statusParam ? { ...commonQuery, status: normalizeLostStatus(statusParam) } : { ...commonQuery }), approvalStatus: { $ne: 'removed' } }),
+      FoundItem.find({ ...(statusParam ? { ...commonQuery, status: normalizeFoundStatus(statusParam) } : { ...commonQuery }), approvalStatus: { $ne: 'removed' } })
         .sort(sortOpt)
         .skip(skip)
         .limit(limitNum)
         .populate('user', 'email')
         .lean(),
-      FoundItem.countDocuments({ ...commonQuery, approvalStatus: { $ne: 'removed' } })
+      FoundItem.countDocuments({ ...(statusParam ? { ...commonQuery, status: normalizeFoundStatus(statusParam) } : { ...commonQuery }), approvalStatus: { $ne: 'removed' } })
     ]);
 
     // Normalize items into unified shape
@@ -490,7 +538,9 @@ router.post('/:id/claim', auth, async (req, res) => {
 
     const foundDoc = await FoundItem.findById(id);
     if (!foundDoc) return res.status(404).json({ success: false, message: 'Item not found' });
-    if (foundDoc.status !== 'Active') return res.status(400).json({ success: false, message: 'Item not claimable' });
+
+    // Only allow claiming when the found item is in Unclaimed state
+    if (!isFoundClaimable(foundDoc.status)) return res.status(400).json({ success: false, message: 'Item not claimable' });
 
     const claim = new ClaimedItem({
       itemId: foundDoc._id,
@@ -611,21 +661,23 @@ router.put('/:id/confirm', auth, async (req, res) => {
 
     // Try to find in FoundItem (since this feature is for found items)
     let item = await FoundItem.findById(cleanId);
+    let isFound = true;
 
     // If not found, check LostItem (just in case)
     if (!item) {
       item = await LostItem.findById(cleanId);
+      isFound = false;
     }
 
     if (!item) return res.status(404).json({ message: "Item not found" });
 
     // Get roll number from user (derive from email if not present)
-    // Assuming confirmedBy should be the person confirming (the Lost Person)
     const rollNumber = req.user.rollNumber || (req.user.email ? req.user.email.split('@')[0] : 'Unknown');
 
     item.badge = "Keep Doing Great!";
     item.confirmedBy = rollNumber;
-    item.status = "Returned";
+    // For found items, a confirm means Returned; for lost items, mark as Resolved
+    item.status = isFound ? 'Returned' : 'Resolved';
 
     await item.save();
     return res.json({ message: "Item successfully confirmed", item });

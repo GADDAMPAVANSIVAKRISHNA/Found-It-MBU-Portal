@@ -26,6 +26,32 @@
 
 ## 🛠️ Tech Stack
 
+### Maintenance & Admin Tools
+
+- Remove obvious test/dummy items from the database:
+
+  ```bash
+  cd backend
+  npm run clean:test-data
+  ```
+
+  This script removes items with very short or obviously gibberish titles (e.g., `asdf`, `dsfsaf`, `gdf`). Review output before running in production.
+
+- Prompt responses persistence:
+  - The app records user responses to confirmation prompts ("Did you return X?" / "Did you receive X?") in the `PromptResponse` collection. This prevents the same prompt from re-appearing for that user and item in future sessions.
+
+- Statistics API endpoints:
+  - GET `/api/stats` — returns aggregated stats
+  - GET `/api/stats/total-items` — total reported items
+  - GET `/api/stats/returned-items` — total returned items
+  - GET `/api/stats/registered-users` — total users
+  - GET `/api/stats/active-claims` — active claims count
+  
+  These endpoints are cached for ~20s to balance freshness and performance.
+
+
+## 🛠️ Tech Stack
+
 ### Frontend
 - **React.js** - UI Library
 - **Tailwind CSS** - Styling
@@ -92,6 +118,11 @@ Found-It-MBU-Portal/
 ### 1. Clone Repository
 ```bash
 git clone https://github.com/GADDAMPAVANSIVAKRISHNA/Found-It-MBU-Portal.git
+```
+
+## Development
+
+After pulling changes, run `npm install` in both `backend/` and `frontend/` to install new dependencies (notably `socket.io` and `socket.io-client`) before starting the dev servers.
 cd Found-It-MBU-Portal
 ```
 

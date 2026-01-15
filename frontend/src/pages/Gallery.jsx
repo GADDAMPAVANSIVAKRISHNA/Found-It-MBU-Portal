@@ -4,6 +4,7 @@ import { apiFetch } from "../utils/api";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import ConnectModal from "../components/ConnectModal";
+import StatusBadge from "../components/StatusBadge";
 
 const Gallery = () => {
   const [items, setItems] = useState([]);
@@ -24,10 +25,23 @@ const Gallery = () => {
   const [filters, setFilters] = useState({
     category: "",
     status: "",
+    type: "",
+    location: "",
     q: "",
     startDate: "",
     endDate: "",
+    sort: 'recent',
+    limit: 20
   });
+
+  // Debounce search (300ms)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setFilters(prev => ({ ...prev, q: localSearch }));
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [localSearch]);
 
   const handleSearchSubmit = () => {
     setFilters((prev) => ({
@@ -50,10 +64,13 @@ const Gallery = () => {
       // Build query string
       const params = new URLSearchParams({
         page,
-        limit: 20,
+        limit: filters.limit || 20,
+        sort: filters.sort || 'recent'
       });
       if (filters.category) params.append('category', filters.category);
       if (filters.status) params.append('status', filters.status);
+      if (filters.type) params.append('type', filters.type);
+      if (filters.location) params.append('location', filters.location);
       if (filters.q) params.append('q', filters.q);
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
@@ -112,12 +129,43 @@ const Gallery = () => {
   };
 
   const handleFilterChange = (e) => {
-    setFilters({
-      ...filters,
-      [e.target.name]: e.target.value,
-    });
+    const name = e.target.name;
+    let v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
 
+    // Coerce numeric fields, keep dates as strings
+    if (name === 'limit') v = Number(v);
+
+    setFilters((prev) => ({
+      ...prev,
+      [name]: v,
+    }));
+
+    // Reset to first page when filters change
     setPage(1);
+  };
+
+  const handleClaim = async (item) => {
+    if (!user) return toast.error('Please login to claim items');
+    try {
+      const res = await apiFetch(`/api/items/${item._id}/claim`, { method: 'POST' });
+      if (!res.ok) return toast.error(res.data?.message || 'Failed to claim');
+      toast.success('Claim submitted — you will be notified on next steps');
+      // Optimistically update UI
+      setItems(prev => prev.map(i => i._id === item._id ? { ...i, status: 'Claimed' } : i));
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to claim item');
+    }
+  };
+
+  const handleConfirm = async (item) => {
+    if (!user) return toast.error('Please login');
+    try {
+      const res = await apiFetch(`/api/items/${item._id}/confirm`, { method: 'PUT' });
+      if (!res.ok) return toast.error(res.data?.message || 'Failed to confirm');
+      toast.success('Confirmed — status updated');
+      setItems(prev => prev.map(i => i._id === item._id ? { ...i, status: (item.itemType === 'Found' ? 'Returned' : 'Resolved') } : i));
+    } catch (e) { console.error(e); toast.error('Failed to confirm'); }
   };
 
   if (loading) {
@@ -188,10 +236,33 @@ const Gallery = () => {
             className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
           >
             <option value="">All Status</option>
-            <option value="unclaimed">Unclaimed</option>
-            <option value="claimed">Claimed</option>
-            <option value="returned">Returned</option>
+            <option value="Unclaimed">Unclaimed</option>
+            <option value="Claimed">Claimed</option>
+            <option value="Verified">Verified</option>
+            <option value="Returned">Returned</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Expired">Expired</option>
           </select>
+
+          <select
+            name="type"
+            value={filters.type}
+            onChange={handleFilterChange}
+            className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
+          >
+            <option value="">All Types</option>
+            <option value="Found">Found</option>
+            <option value="Lost">Lost</option>
+          </select>
+
+          <input
+            type="text"
+            name="location"
+            value={filters.location}
+            onChange={handleFilterChange}
+            placeholder="Location"
+            className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
+          />
 
           <div className="relative flex-1 min-w-40 sm:min-w-48">
             <input
@@ -210,20 +281,49 @@ const Gallery = () => {
             </button>
           </div>
 
-          <input
-            type="date"
-            name="startDate"
-            value={filters.startDate}
+          <select
+            name="sort"
+            value={filters.sort}
             onChange={handleFilterChange}
-            className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
-          />
-          <input
-            type="date"
-            name="endDate"
-            value={filters.endDate}
+            className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
+          >
+            <option value="recent">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="title_az">Title A→Z</option>
+          </select>
+
+          <select
+            name="limit"
+            value={filters.limit}
             onChange={handleFilterChange}
-            className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
-          />
+            className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
+          >
+            <option value={10}>10 per page</option>
+            <option value={20}>20 per page</option>
+            <option value={50}>50 per page</option>
+          </select>
+
+          <div className="flex flex-col">
+            <label className="text-xs text-gray-600 mb-1">From Date</label>
+            <input
+              type="date"
+              name="startDate"
+              value={filters.startDate}
+              onChange={handleFilterChange}
+              className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-xs text-gray-600 mb-1">To Date</label>
+            <input
+              type="date"
+              name="endDate"
+              value={filters.endDate}
+              onChange={handleFilterChange}
+              className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
+            />
+          </div>
         </div>
 
         {/* NO ITEMS */}
@@ -262,27 +362,24 @@ const Gallery = () => {
                     </h3>
 
                     {/* Category + Status */}
-                    <div className="mb-2 sm:mb-3 flex gap-2 flex-wrap">
+                    <div className="mb-2 sm:mb-3 flex gap-2 flex-wrap items-center">
                       <span className="bg-blue-100 text-blue-800 text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
                         {item.category}
                       </span>
 
-                      <span
-                        className={`text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-semibold ${item.itemType === "Found"
-                          ? (item.status || "").toLowerCase() === "claimed"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : (item.status || "").toLowerCase() === "returned"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          : "bg-orange-100 text-orange-800"
-                          }`}
-                      >
-                        {item.itemType === "Found"
-                          ? item.status?.toLowerCase() === "active"
-                            ? "Unclaimed"
-                            : item.status || "Unclaimed"
-                          : "Lost"}
-                      </span>
+                      {/* Status Badge */}
+                      <div>
+                        <StatusBadge status={(() => {
+                          const s = item.status || '';
+                          if (/^active$/i.test(s)) return 'Unclaimed';
+                          if (/^frozen$/i.test(s)) return 'Under Review';
+                          if (/^returned$/i.test(s)) return 'Returned';
+                          if (/^claimed$/i.test(s)) return 'Claimed';
+                          if (/^verified$/i.test(s)) return 'Verified';
+                          if (/^resolved$/i.test(s)) return 'Resolved';
+                          return s;
+                        })()} />
+                      </div>
                     </div>
 
                     {/* Location + Date */}
@@ -314,23 +411,30 @@ const Gallery = () => {
 
                         const isPoster = currentUserId && currentUserId === itemUserId;
                         const isResponder = currentUserId && currentUserId === itemClaimedBy;
-
-                        // Check if this user is the "Receiver" who should confirm receipt
-                        // Lost Item -> Poster (Owner) receives it back.
-                        // Found Item -> Responder (Claimant) receives it.
                         const isReceiver = (item.itemType === 'Lost' && isPoster) || (item.itemType === 'Found' && isResponder);
 
-                        // 1. Returned Status (Highest Priority)
-                        if (item.status === 'Returned') {
+                        const rawStatus = item.status || '';
+                        const status = (() => {
+                          if (/^active$/i.test(rawStatus)) return 'Unclaimed';
+                          if (/^frozen$/i.test(rawStatus)) return 'Under Review';
+                          if (/^returned$/i.test(rawStatus)) return 'Returned';
+                          if (/^claimed$/i.test(rawStatus)) return 'Claimed';
+                          if (/^verified$/i.test(rawStatus)) return 'Verified';
+                          if (/^resolved$/i.test(rawStatus)) return 'Resolved';
+                          return rawStatus;
+                        })();
+
+                        // Returned/Resolved - final state
+                        if (status === 'Returned' || status === 'Resolved') {
                           return (
-                            <span className="w-full px-3 py-2 rounded text-sm bg-gray-100 text-gray-500 border border-gray-200 text-center italic font-medium">
-                              Item Returned
+                            <span className="w-full px-3 py-2 rounded text-sm bg-gray-100 text-green-700 border border-gray-200 text-center font-semibold">
+                              {status} ✓
                             </span>
                           );
                         }
 
-                        // 2. Claimed/Frozen Status
-                        if (item.status === 'Frozen' || item.status === 'Claimed') {
+                        // Claimed / Under Review
+                        if (status === 'Claimed' || status === 'Under Review') {
                           if (isPoster || isResponder) {
                             const label = isPoster
                               ? (item.itemType === 'Lost' ? 'Message Finder' : 'Message Claimant')
@@ -338,52 +442,49 @@ const Gallery = () => {
 
                             return (
                               <div className="flex flex-col gap-2 w-full">
-                                <button
-                                  className="w-full px-3 py-2 rounded text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2"
-                                  onClick={() => handleConnect(item)}
-                                >
+                                <button className="w-full px-3 py-2 rounded text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleConnect(item)}>
                                   ✉️ {label}
                                 </button>
-
-                                {/* Confirmation Button for Receiver */}
                                 {isReceiver && (
-                                  <button
-                                    className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2"
-                                    onClick={() => handleConfirm(item)}
-                                  >
+                                  <button className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleConfirm(item)}>
                                     ✅ I Received It
                                   </button>
                                 )}
                               </div>
                             );
-                          } else {
-                            // Public View
-                            return (
-                              <span className="w-full px-3 py-2 rounded text-sm bg-yellow-50 text-yellow-700 border border-yellow-200 text-center font-medium">
-                                Claimed
-                              </span>
-                            );
                           }
+
+                          return (
+                            <span className="w-full px-3 py-2 rounded text-sm bg-yellow-50 text-yellow-700 border border-yellow-200 text-center font-medium">
+                              Already Claimed
+                            </span>
+                          );
                         }
 
-                        // 3. Active Status
-                        // Logic: Hide for Poster, Show 'Connect' for others
+                        // Default: available (Unclaimed / Active / Found)
                         if (isPoster) {
                           return (
                             <span className="w-full px-3 py-2 rounded text-sm bg-blue-50 text-blue-600 border border-blue-100 text-center font-medium">
                               Your Post
                             </span>
                           );
-                        } else {
+                        }
+
+                        // For found items: Claim Item
+                        if (item.itemType === 'Found') {
                           return (
-                            <button
-                              className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2"
-                              onClick={() => handleConnect(item)}
-                            >
-                              Connect
+                            <button className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleClaim(item)}>
+                              Claim Item
                             </button>
                           );
                         }
+
+                        // For lost items: I Lost This (contact owner)
+                        return (
+                          <button className="w-full px-3 py-2 rounded text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleConnect(item)}>
+                            I Lost This
+                          </button>
+                        );
                       })()}
                     </div>
                   </div>

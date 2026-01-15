@@ -57,7 +57,9 @@ const ReportLost = () => {
   // FORM VALIDATION
   const validateForm = () => {
     if (!formData.title.trim()) return toast.error('Please enter item title');
+    if (formData.title.trim().length < 3) return toast.error('Title must be at least 3 characters');
     if (!formData.description.trim()) return toast.error('Please enter item description');
+    if (formData.description.trim().length < 10) return toast.error('Description must be at least 10 characters');
     if (!formData.approximateLocation.trim()) return toast.error('Please enter approximate location');
     if (!formData.dateLost) return toast.error('Please select date lost');
     if (!formData.approximateTime) return toast.error('Please select approximate time');

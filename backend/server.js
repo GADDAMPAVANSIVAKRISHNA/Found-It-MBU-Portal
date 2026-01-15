@@ -196,6 +196,9 @@ app.use("/api/admin", require("./routes/admin"));
 app.use("/api", require("./routes/notifications"));
 app.use("/api/connections", require("./routes/connectionRoutes"));
 
+// Stats endpoints
+app.use('/api/stats', require('./routes/stats'));
+
 // ⭐ ADD THIS ⭐
 // app.use("/api/otp", require("./routes/otp")); // Removed OTP
 
@@ -218,6 +221,70 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Backend running on port ${PORT} (pid ${process.pid})`);
 });
+
+// Setup Socket.IO for real-time notifications
+try {
+  const { Server } = require('socket.io');
+  const notificationHub = require('./utils/notificationHub');
+  const admin = require('./firebase'); // firebase admin instance used for token verification
+  const io = new Server(server, {
+    cors: {
+      origin: (origin, callback) => callback(null, true),
+      methods: ['GET', 'POST']
+    }
+  });
+
+  io.on('connection', async (socket) => {
+    try {
+      const token = socket.handshake.auth && socket.handshake.auth.token;
+      let userId = null;
+
+      if (token) {
+        try {
+          // Try Firebase token first (preferred)
+          const decoded = await admin.auth().verifyIdToken(token);
+          // Map firebase UID to app user _id
+          const User = require('./models/user');
+          const user = await User.findOne({ firebaseUid: decoded.uid });
+          if (user) userId = user._id.toString();
+        } catch (e) {
+          // Try backend JWT fallback
+          const jwt = require('jsonwebtoken');
+          try {
+            const decodedJwt = jwt.verify(token, process.env.JWT_SECRET);
+            if (decodedJwt && decodedJwt.userId) userId = decodedJwt.userId;
+          } catch (e2) {
+            // invalid token
+          }
+        }
+      }
+
+      if (!userId) {
+        socket.disconnect(true);
+        return;
+      }
+
+      // Join a room for the user id so we can emit per-user
+      socket.join(String(userId));
+
+      // Optionally emit current unread count on connect
+      notificationHub.emitUnreadCount(userId);
+
+      socket.on('disconnect', () => {
+        // Nothing special for now
+      });
+    } catch (err) {
+      console.error('Socket connection error:', err && err.message);
+    }
+  });
+
+  // Expose io to the notification hub
+  notificationHub.init(io);
+
+  console.log('🔌 Socket.IO initialized');
+} catch (e) {
+  console.warn('Socket.IO could not be initialized:', e && e.message);
+}
 
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {

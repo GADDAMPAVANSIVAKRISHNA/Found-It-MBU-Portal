@@ -42,6 +42,9 @@ const ReportForm = () => {
   const headerTitle = tab === 'lost' ? 'Report a Lost Item' : 'Report a Found Item';
   const headerAccent = tab === 'lost' ? 'red' : 'green';
 
+  // Get today's date in YYYY-MM-DD format for max attribute
+  const today = new Date().toISOString().split('T')[0];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -69,6 +72,18 @@ const ReportForm = () => {
     if (!form.description.trim()) return toast.error('Please enter item description');
     if (!form.location.trim()) return toast.error('Please enter location');
     if (!form.date) return toast.error('Please select date');
+
+    // Future Date Validation
+    const selectedDate = new Date(form.date);
+    const currentDate = new Date();
+    // Reset time parts for accurate date-only comparison
+    selectedDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate > currentDate) {
+      return toast.error('Future dates are not allowed. Please select today or a past date.');
+    }
+
     if (!form.approximateTime) return toast.error('Please select approximate time');
     if (!form.mobile.trim() && !form.email.trim()) return toast.error('Please provide mobile or email');
 
@@ -223,6 +238,7 @@ const ReportForm = () => {
                   name="date"
                   value={form.date}
                   onChange={handleChange}
+                  max={today}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
                 />
               </div>

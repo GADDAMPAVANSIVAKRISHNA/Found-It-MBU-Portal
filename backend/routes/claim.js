@@ -206,21 +206,26 @@ router.get('/pending-actions', auth, async (req, res) => {
   try {
     const userId = req.userId;
 
+    // Fetch prompt responses for this user (we will exclude items they've dismissed / opted out / confirmed)
+    const PromptResponse = require('../models/PromptResponse');
+    const excludedResponses = await PromptResponse.find({ userId }).lean();
+    const excludedSet = new Set(excludedResponses.map(r => `${r.itemId}::${r.actionType}`));
+
     // 1. As Finder: Items I found that are Frozen (Need to confirm return)
-    const itemsToConfirmReturn = await FoundItem.find({
+    let itemsToConfirmReturn = await FoundItem.find({
       userId: userId,
       status: 'Frozen'
     }).populate('claimedBy', 'name email');
 
     // 2. As Claimant: Items I claimed that are Frozen (Need to confirm receipt?)
-    // Actually user requirement says "until he returns... popup should come... did you returned".
-    // And for claimant "until he received... popup should come... did you claimed".
-
-    // So for Claimant, we check items they claimed that are NOT yet 'Returned' (so Frozen).
-    const itemsToConfirmReceipt = await FoundItem.find({
+    let itemsToConfirmReceipt = await FoundItem.find({
       claimedBy: userId,
       status: 'Frozen'
     }).populate('userId', 'name email');
+
+    // Filter out items which the user has already responded to (dismissed / dont_ask_again / confirmed)
+    itemsToConfirmReturn = itemsToConfirmReturn.filter(i => !excludedSet.has(`${i._id}::confirm_return`));
+    itemsToConfirmReceipt = itemsToConfirmReceipt.filter(i => !excludedSet.has(`${i._id}::confirm_receipt`));
 
     return res.json({
       success: true,
@@ -276,6 +281,15 @@ router.post('/confirm-return', auth, async (req, res) => {
     }
 
     await item.save();
+
+    // Persist prompt response so finder won't be asked again
+    try {
+      const PromptResponse = require('../models/PromptResponse');
+      await PromptResponse.create({ userId: req.userId, itemId, actionType: 'confirm_return', response: 'confirmed' });
+    } catch (e) {
+      console.error('Failed to create prompt-response after confirm-return:', e.message);
+    }
+
     return res.json({ success: true, message: 'Item marked as returned' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -321,10 +335,41 @@ router.post('/confirm-receipt', auth, async (req, res) => {
       }
 
       await item.save();
+
+      // Persist prompt response so claimant won't be asked again
+      try {
+        const PromptResponse = require('../models/PromptResponse');
+        await PromptResponse.create({ userId: req.userId, itemId, actionType: 'confirm_receipt', response: 'confirmed' });
+      } catch (e) {
+        console.error('Failed to create prompt-response after confirm-receipt:', e.message);
+      }
     }
 
     return res.json({ success: true, message: 'Receipt confirmed' });
   } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST - Prompt Response (dismiss / dont_ask_again / confirmed)
+router.post('/prompt-response', auth, async (req, res) => {
+  try {
+    const { itemId, actionType, response } = req.body;
+    if (!itemId || !actionType || !response) return res.status(400).json({ error: 'itemId, actionType and response required' });
+
+    const PromptResponse = require('../models/PromptResponse');
+    const existing = await PromptResponse.findOne({ userId: req.userId, itemId, actionType });
+    if (existing) {
+      existing.response = response;
+      existing.createdAt = Date.now();
+      await existing.save();
+    } else {
+      await PromptResponse.create({ userId: req.userId, itemId, actionType, response });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Prompt-response error:', err);
     return res.status(500).json({ error: err.message });
   }
 });
