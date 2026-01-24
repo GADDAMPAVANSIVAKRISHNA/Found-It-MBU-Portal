@@ -52,10 +52,12 @@ const ChatPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log('ChatPage: Fetching data...');
         const [chatRes, msgsRes] = await Promise.all([
           apiFetch(`/api/chats/${chatId}`),
           apiFetch(`/api/messages/${chatId}`)
         ]);
+        console.log('ChatPage: Responses received', { chatRes, msgsRes });
 
         if (chatRes.ok) setChat(chatRes.data.chat);
         else throw new Error(chatRes.data?.error || 'Failed to load chat');
@@ -74,7 +76,12 @@ const ChatPage = () => {
       }
     };
 
-    if (user) fetchData();
+    if (user) {
+      console.log('ChatPage: Starting fetch for chatId:', chatId);
+      fetchData();
+    } else {
+      console.log('ChatPage: User is null, waiting...');
+    }
   }, [chatId, navigate, user]);
 
   useEffect(() => {
@@ -173,8 +180,8 @@ const ChatPage = () => {
           {/* Show Status if Frozen */}
           {chat?.item?.status === 'Frozen' && (
             <span className={`text-xs px-2 py-1 rounded border ${chat.item.claimedBy === user?._id
-                ? 'bg-green-50 text-green-700 border-green-200'
-                : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+              ? 'bg-green-50 text-green-700 border-green-200'
+              : 'bg-yellow-50 text-yellow-700 border-yellow-200'
               }`}>
               {chat.item.claimedBy === user?._id ? 'Claimed by You' : 'Item Under Review'}
             </span>
@@ -184,28 +191,29 @@ const ChatPage = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        const isMe = msg.sender._id === user._id || msg.sender === user._id;
-            // Check if read by other user (simplified check)
-            const isRead = msg.readBy && msg.readBy.length > 0 && !msg.readBy.every(id => id === msg.sender._id);
+        {messages.map((msg, i) => {
+          const isMe = msg.sender._id === user._id || msg.sender === user._id;
+          // Check if read by other user (simplified check)
+          const isRead = msg.readBy && msg.readBy.length > 0 && !msg.readBy.every(id => id === msg.sender._id);
 
-        return (
-        <div key={msg._id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
-          <div className={`max-w-[70%] px-3 py-2 rounded-lg shadow-sm relative ${isMe ? 'bg-[#d9fdd3] text-gray-800 rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'
-            }`}>
-            <p className="text-sm break-words pr-4">{msg.text}</p>
-            <div className="flex items-center justify-end gap-1 mt-1 select-none">
-              <span className="text-[10px] text-gray-500 min-w-fit">
-                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-              {isMe && (
-                <span className={`text-[10px] ${isRead ? 'text-blue-500' : 'text-gray-400'}`}>
-                  {isRead ? '✓✓' : '✓'}
-                </span>
-              )}
+          return (
+            <div key={msg._id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
+              <div className={`max-w-[70%] px-3 py-2 rounded-lg shadow-sm relative ${isMe ? 'bg-[#d9fdd3] text-gray-800 rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none'
+                }`}>
+                <p className="text-sm break-words pr-4">{msg.text}</p>
+                <div className="flex items-center justify-end gap-1 mt-1 select-none">
+                  <span className="text-[10px] text-gray-500 min-w-fit">
+                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {isMe && (
+                    <span className={`text-[10px] ${isRead ? 'text-blue-500' : 'text-gray-400'}`}>
+                      {isRead ? '✓✓' : '✓'}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        );
+          );
         })}
         <div ref={messagesEndRef} />
       </div>
