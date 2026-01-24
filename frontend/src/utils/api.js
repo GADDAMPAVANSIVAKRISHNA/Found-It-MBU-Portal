@@ -54,7 +54,7 @@ let API_BASE_URL = import.meta.env.NEXT_PUBLIC_BACKEND_URL || import.meta.env.VI
 // This prevents requests from accidentally going to the frontend dev server (which returns 404 / "Not found").
 if (!API_BASE_URL) {
   if (typeof window !== "undefined" && /^https?:\/\/(localhost|127\.0\.0\.1)/.test(window.location.origin)) {
-    API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   } else {
     API_BASE_URL = import.meta.env.NEXT_PUBLIC_BACKEND_URL || '';
   }
