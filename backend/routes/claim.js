@@ -159,7 +159,7 @@ router.post('/freeze', auth, async (req, res) => {
     // Notify finder
     await Notification.create({
       userId: item.userId,
-      type: 'item_frozen',
+      type: 'item_status',
       title: 'Item Claimed!',
       message: itemModel === 'Found' ? 'Someone has claimed your found item.' : 'Someone found your lost item!',
       itemId: item._id.toString()
@@ -167,8 +167,13 @@ router.post('/freeze', auth, async (req, res) => {
 
     // AUTO-CREATE a ConnectionRequest so messaging can start instantly between claimant and finder
     let connectionRequestId = null;
+    let chatId = null;
+
     try {
       const ConnectionRequest = require('../models/ConnectionRequest');
+      const Chat = require('../models/Chat');
+
+      // 1. Create Connection Request (Legacy/Backup)
       let existing = await ConnectionRequest.findOne({ finderId: item.userId, claimantId: req.userId, $or: [{ itemId: item._id.toString() }, { itemId: item._id }] });
 
       if (!existing) {
@@ -200,11 +205,39 @@ router.post('/freeze', auth, async (req, res) => {
           await existing.save();
         }
       }
+
+      // 2. Create/Find Modern Chat (Primary Messaging)
+      const chatModelType = itemModel === 'Found' ? 'FoundItem' : 'LostItem';
+
+      const mongoose = require('mongoose');
+      let claimantId = req.userId;
+      let finderId = item.userId;
+
+      // Attempt to cast to ObjectId if valid, otherwise rely on Mongoose casting string
+      if (mongoose.Types.ObjectId.isValid(claimantId)) claimantId = new mongoose.Types.ObjectId(claimantId);
+      if (mongoose.Types.ObjectId.isValid(finderId)) finderId = new mongoose.Types.ObjectId(finderId);
+
+      let chat = await Chat.findOne({
+        item: item._id,
+        itemModel: chatModelType,
+        participants: { $all: [claimantId, finderId] }
+      });
+
+      if (!chat) {
+        console.log(`Creating new chat for item ${item._id}`);
+        chat = new Chat({
+          item: item._id,
+          itemModel: chatModelType,
+          participants: [claimantId, finderId]
+        });
+        await chat.save();
+      }
+      chatId = chat._id;
     } catch (e) {
-      console.error('Failed to auto-create ConnectionRequest after freeze', e);
+      console.error('Failed to auto-create ConnectionRequest/Chat after freeze', e);
     }
 
-    return res.json({ success: true, message: 'Item frozen for you', item, connectionRequestId });
+    return res.json({ success: true, message: 'Item frozen for you', item, connectionRequestId, chatId });
   } catch (err) {
     console.error('Freeze error:', err);
     return res.status(500).json({ error: err.message });

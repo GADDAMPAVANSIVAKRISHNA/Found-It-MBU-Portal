@@ -28,11 +28,40 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
 
     // START of new logic: store connectionRequestId here
     const [connectionRequestId, setConnectionRequestId] = useState(null);
+    const [chatId, setChatId] = useState(null);
 
     const handleOpenChat = async () => {
         setLoading(true);
         try {
-            // Priority 1: Use the ID we just got from the claim/freeze action
+            // Priority 0: Modern Chat ID (from freeze or existing)
+            let targetChatId = chatId;
+
+            // If we don't have a chatId yet, try to create/find one immediately
+            if (!targetChatId) {
+                try {
+                    const chatRes = await apiFetch('/api/chats', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            itemId: item._id,
+                            ownerId: item.userId,
+                            itemType: item.itemType
+                        })
+                    });
+                    if (chatRes.ok) {
+                        targetChatId = chatRes.data.chat._id;
+                        setChatId(targetChatId); // Update state for future clicks
+                    }
+                } catch (e) { console.error('Auto-create chat failed', e); }
+            }
+
+            if (targetChatId) {
+                navigate(`/chat/${targetChatId}`);
+                onClose && onClose();
+                return;
+            }
+
+            // Priority 1: Use the connectionRequestId (Legacy/Fallback)
             if (connectionRequestId) {
                 navigate(`/messages?requestId=${connectionRequestId}`);
                 onClose && onClose();
@@ -52,8 +81,7 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                     navigate(`/messages?requestId=${found._id}`);
                     onClose && onClose();
                 } else {
-                    toast.error('Connection request not found. Please try again.');
-                    // Fallback
+                    toast.error('Chat could not be started. Please try again or check your messages.');
                     navigate('/messages');
                 }
             } else {
@@ -81,12 +109,15 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
             if (res.ok) {
                 const updatedItem = res.data?.item || {};
                 const connId = res.data?.connectionRequestId;
+                const newChatId = res.data?.chatId;
+
                 if (connId) setConnectionRequestId(connId);
+                if (newChatId) setChatId(newChatId);
 
                 toast.success('Item claimed! You can now message the finder.');
 
                 // Propagate updated item to parent
-                onSuccess && onSuccess(updatedItem);
+                if (onSuccess) onSuccess(updatedItem);
             } else {
                 toast.error(res.data?.error || 'Failed to claim item');
             }
@@ -150,16 +181,21 @@ const ConnectModal = ({ item, onClose, onSuccess }) => {
                                 <p className="text-sm text-center text-green-600 font-medium mb-3">
                                     Item claimed successfully! You can now message the {isOwnItem ? 'claimant' : (item.itemType === 'Lost' ? 'owner' : 'finder')} to coordinate return.
                                 </p>
-                                <button
-                                    onClick={handleOpenChat}
-                                    disabled={loading}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg flex items-center justify-center font-bold shadow-md transition hover:scale-[1.02]"
-                                >
-                                    💬 Message {isOwnItem
-                                        ? (item.itemType === 'Lost' ? 'Finder' : 'Claimant')
-                                        : (item.itemType === 'Lost' ? 'Owner' : 'Finder')
-                                    }
-                                </button>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={onClose}
+                                        className="flex-1 py-3 rounded-lg font-bold text-gray-700 border border-gray-300 hover:bg-gray-50 transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleOpenChat}
+                                        disabled={loading}
+                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg flex items-center justify-center font-bold shadow-md transition hover:scale-[1.02]"
+                                    >
+                                        💬 Chat
+                                    </button>
+                                </div>
                             </div>
                         )}
 

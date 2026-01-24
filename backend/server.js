@@ -195,6 +195,8 @@ app.use("/api/claim", require("./routes/claim"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api", require("./routes/notifications"));
 app.use("/api/connections", require("./routes/connectionRoutes"));
+app.use("/api/chats", require("./routes/chatRoutes"));
+app.use("/api/messages", require("./routes/messageRoutes"));
 
 // Stats endpoints
 app.use('/api/stats', require('./routes/stats'));

@@ -27,7 +27,8 @@ const EmailSent = lazy(() => import("./pages/EmailSent"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const Messages = lazy(() => import("./pages/Messages"));
+const MessagesList = lazy(() => import("./pages/MessagesList"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
 
 // Firebase auth
 import { auth } from "./lib/firebase";
@@ -111,7 +112,16 @@ function App() {
                   path="/messages"
                   element={
                     <PrivateRoute>
-                      <Messages />
+                      <MessagesList />
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/chat/:chatId"
+                  element={
+                    <PrivateRoute>
+                      <ChatPage />
                     </PrivateRoute>
                   }
                 />

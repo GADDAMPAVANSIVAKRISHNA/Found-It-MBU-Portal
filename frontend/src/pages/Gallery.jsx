@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import ConnectModal from "../components/ConnectModal";
 import StatusBadge from "../components/StatusBadge";
 
 const Gallery = () => {
@@ -12,14 +11,9 @@ const Gallery = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // For Lost items (to show contact details of owner to finder)
-  const [contactItem, setContactItem] = useState(null);
-
-  // For Found items (to show Secure Connect Modal)
-  const [connectItem, setConnectItem] = useState(null);
-
   const { user } = useAuth();
-
+  const navigate = useNavigate();
+  const [connectItem, setConnectItem] = useState(null);
 
   const [localSearch, setLocalSearch] = useState("");
   const [filters, setFilters] = useState({
@@ -110,21 +104,35 @@ const Gallery = () => {
     }
   };
 
-  const handleConnect = (item) => {
+  const handleConnect = async (item) => {
     if (!user) {
       toast.error("Please login to connect");
       return;
     }
 
-    // Identify if it's a found item or lost item
-    const isFound = item.itemType === "Found" || item.type === "Found" || String(item._id || "").startsWith("found_");
+    try {
+      // Ensure we send a clean ID and correct type
+      const rawId = item._id ? item._id.toString() : '';
+      const cleanId = rawId.replace(/^(found_|lost_)/, '');
 
-    if (isFound) {
-      // Open Secure Connect Modal
-      setConnectItem(item);
-    } else {
-      // Lost item: Show contact details (so finder can contact owner)
-      setContactItem(item);
+      const res = await apiFetch('/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemId: cleanId,
+          ownerId: item.userId,
+          itemType: item.itemType
+        })
+      });
+
+      if (res.ok) {
+        navigate(`/chat/${res.data.chat._id}`);
+      } else {
+        toast.error(res.data?.error || "Failed to connect");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error creating chat");
     }
   };
 
@@ -144,12 +152,52 @@ const Gallery = () => {
     setPage(1);
   };
 
-  const handleClaim = async (item) => {
+  const handleClaim = (item) => {
     if (!user) {
       toast.error('Please login to claim items');
       return;
     }
     setConnectItem(item);
+  };
+
+  const processClaim = async (item) => {
+    // Close modal immediately
+    setConnectItem(null);
+    const loadingToast = toast.loading('Processing claim...');
+
+    try {
+      console.log('Freezing item:', item._id);
+      const res = await apiFetch('/api/claim/freeze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: item._id })
+      });
+
+      console.log('Claim response:', res);
+      toast.dismiss(loadingToast);
+
+      if (res.ok) {
+        toast.success('Item claimed successfully!');
+        if (res.data.chatId) {
+          console.log('Navigating to chat:', res.data.chatId);
+          navigate(`/chat/${res.data.chatId}`);
+        } else if (res.data.connectionRequestId) {
+          console.log('Fallback to refresh (no chatId)');
+          fetchItems();
+          navigate('/messages');
+        } else {
+          console.warn('No chatId or connectionRequestId returned');
+          fetchItems();
+        }
+      } else {
+        toast.error(res.data?.error || 'Failed to claim item');
+        fetchItems();
+      }
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      console.error(err);
+      toast.error('Error claiming item');
+    }
   };
 
   const handleConfirm = async (item) => {
@@ -203,6 +251,19 @@ const Gallery = () => {
 
   return (
     <div className="w-screen overflow-x-hidden px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      {/* Contact Modal */}
+      {connectItem && (
+        <ContactModal
+          item={connectItem}
+          onClose={() => setConnectItem(null)}
+          onChat={(item) => {
+            // Close modal is handled in processClaim, but we can do it here too to be safe
+            // However, processClaim expects item. 
+            // processClaim will freeze the item and then navigate to chat.
+            processClaim(item);
+          }}
+        />
+      )}
       <div className="w-full max-w-7xl mx-auto">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold mb-4 sm:mb-6 lg:mb-8">Browse Lost & Found Items</h1>
 
@@ -467,16 +528,16 @@ const Gallery = () => {
                         // For found items: Claim Item
                         if (item.itemType === 'Found') {
                           return (
-                            <button className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleConnect(item)}>
+                            <button className="w-full px-3 py-2 rounded text-sm bg-green-600 hover:bg-green-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleClaim(item)}>
                               Claim Item
                             </button>
                           );
                         }
 
-                        // For lost items: I Lost This (contact owner)
+                        // For lost items: I Found This (contact owner)
                         return (
                           <button className="w-full px-3 py-2 rounded text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleConnect(item)}>
-                            I Lost This
+                            I Found This
                           </button>
                         );
                       })()}
@@ -513,65 +574,75 @@ const Gallery = () => {
           </>
         )}
 
-        {/* LEGACY CONTACT MODAL (Only for Lost items now) */}
-        {contactItem && (() => {
-          const contactEmail = contactItem?.userEmail || contactItem?.email || "";
-          const emailLocal = (contactEmail || "").split("@")[0];
-          const rollNumber = emailLocal || "";
+        {/* LEGACY CONTACT MODAL & CONNECT MODAL REMOVED */}
+      </div>
+    </div>
+  );
+};
 
-          return (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-3 sm:p-4 z-50">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-xs sm:max-w-sm lg:max-w-md p-4 sm:p-6 max-h-[85vh] overflow-y-auto scrollbar-hide relative">
-                <div className="flex justify-between items-center mb-3 sm:mb-4">
-                  <h3 className="text-base sm:text-lg lg:text-xl font-bold">Owner Contact Details</h3>
-                  <button onClick={() => setContactItem(null)} className="text-lg hover:text-gray-600">✕</button>
-                </div>
 
-                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                  <p>
-                    <strong>Roll Number:</strong> {rollNumber || contactItem.rollNumber || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Mobile:</strong> {contactItem.userContact || contactItem.phone || contactItem.contactNumber || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Email:</strong> {contactEmail || "N/A"}
-                  </p>
 
-                  <hr className="my-2" />
+/* CONTACT MODAL */
+const ContactModal = ({ item, onClose, onChat }) => {
+  if (!item) return null;
 
-                  <p>
-                    <strong>Item:</strong> {contactItem.title}
-                  </p>
-                  <p className="text-gray-600">{contactItem.description}</p>
-                </div>
+  const rollNumber = item.rollNumber || (item.userEmail ? item.userEmail.split('@')[0] : 'N/A');
+  const finderName = item.userName || 'Finder';
 
-                <div className="mt-4 flex pb-2">
-                  <button
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2 border border-gray-300 rounded-lg text-sm sm:text-base font-medium hover:bg-gray-50 transition text-gray-700"
-                    onClick={() => setContactItem(null)}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-100 transition-all">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">👤</span>
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-1">Contact Finder</h3>
+          <p className="text-sm text-gray-500">Item found by {finderName}</p>
+        </div>
+
+        <div className="space-y-4 mb-8">
+          <div className="bg-gray-50 p-3 rounded-lg flex items-center gap-3">
+            <div className="bg-white p-2 rounded-md shadow-sm text-lg">🆔</div>
+            <div className="text-left">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Roll Number</p>
+              <p className="font-semibold text-gray-800">{rollNumber}</p>
             </div>
-          );
-        })()}
+          </div>
 
-        {/* SECURE CONNECT MODAL (For Found items) */}
-        {connectItem && (
-          <ConnectModal
-            item={connectItem}
-            onClose={() => setConnectItem(null)}
-            onSuccess={(updatedItem) => {
-              // Replace the specific item in local state so other users see it as frozen after claim
-              setItems(prev => prev.map(it => (String(it._id) === String(updatedItem._id) ? updatedItem : it)));
-              // UPDATE current modal item so it reflects "Frozen" state immediately
-              setConnectItem(updatedItem);
+          <div className="bg-gray-50 p-3 rounded-lg flex items-center gap-3">
+            <div className="bg-white p-2 rounded-md shadow-sm text-lg">📧</div>
+            <div className="text-left overflow-hidden">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Email Address</p>
+              <p className="font-semibold text-gray-800 truncate" title={item.userEmail}>{item.userEmail || 'Hidden'}</p>
+            </div>
+          </div>
+        </div>
+
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
             }}
-          />
-        )}
+            className="flex-1 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onChat(item);
+            }}
+            className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
+          >
+            <span>💬</span> Chat with {finderName.split(' ')[0]}
+          </button>
+        </div>
       </div>
     </div>
   );
