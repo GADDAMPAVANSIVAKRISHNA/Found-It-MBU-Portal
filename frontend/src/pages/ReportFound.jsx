@@ -13,13 +13,9 @@ const ReportFound = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'Electronics',
-    subcategory: '',
     location: '',
     dateFound: '',
     approximateTime: '',
-    contactPreference: 'mobile',
-    email: '',
     mobile: '',
     rollNumber: '',
     whereKept: 'With me',
@@ -34,8 +30,7 @@ const ReportFound = () => {
   const timeOptions = [
     'Morning (6 AM - 12 PM)',
     'Afternoon (12 PM - 5 PM)',
-    'Evening (5 PM - 9 PM)',
-    'Night (9 PM - 6 AM)'
+    'Evening (5 PM - 9 PM)'
   ];
 
   const handleChange = (e) => {
@@ -64,19 +59,9 @@ const ReportFound = () => {
     if (!formData.location.trim()) return toast.error('Please enter location where item was found');
     if (!formData.dateFound) return toast.error('Please select date found');
     if (!formData.approximateTime) return toast.error('Please select approximate time');
+    if (!formData.mobile.trim()) return toast.error('Please provide mobile number');
+    if (!/^[0-9]{10}$/.test(formData.mobile)) return toast.error('Please enter valid 10-digit mobile number');
     if (!imageFile) return toast.error('Image is mandatory for found items');
-
-    if (!formData.mobile.trim() && !formData.email.trim()) {
-      return toast.error('Please provide mobile or email');
-    }
-
-    if (formData.mobile && !/^[0-9]{10}$/.test(formData.mobile)) {
-      return toast.error('Please enter valid 10-digit mobile number');
-    }
-
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      return toast.error('Please enter valid email');
-    }
 
     return true;
   };
@@ -93,13 +78,10 @@ const ReportFound = () => {
       data.append('title', formData.title);
       data.append('description', formData.description);
       data.append('category', formData.category);
-      data.append('subcategory', formData.subcategory);
       data.append('location', formData.location);
       data.append('date', formData.dateFound);
-      data.append('contactNumber', formData.mobile);
-      data.append('email', formData.email);
+      data.append('mobile', formData.mobile);
       data.append('rollNumber', formData.rollNumber);
-      data.append('contactPreference', formData.contactPreference);
       data.append('whereKept', formData.whereKept);
       data.append('otherLocation', formData.otherLocation || '');
 
@@ -196,17 +178,6 @@ const ReportFound = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Subcategory</label>
-                <input
-                  type="text"
-                  name="subcategory"
-                  value={formData.subcategory}
-                  onChange={handleChange}
-                  placeholder="e.g., Laptop, Backpack"
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
-                />
-              </div>
             </div>
 
             {/* Location + Date */}
@@ -286,6 +257,17 @@ const ReportFound = () => {
               <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Contact Information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
                 <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Mobile Number *</label>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    placeholder="e.g. 9123456789"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Roll Number</label>
                   <input
                     type="text"
@@ -293,30 +275,6 @@ const ReportFound = () => {
                     value={formData.rollNumber}
                     onChange={handleChange}
                     placeholder="e.g. 23102A010664"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Mobile</label>
-                  <input
-                    type="tel"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                    placeholder="10-digit mobile number"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="your.email@mbu.edu.in"
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
                   />
                 </div>

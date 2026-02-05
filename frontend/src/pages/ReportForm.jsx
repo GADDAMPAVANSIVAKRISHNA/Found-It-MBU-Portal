@@ -11,8 +11,7 @@ const categories = [
 const timeOptions = [
   'Morning (6 AM - 12 PM)',
   'Afternoon (12 PM - 5 PM)',
-  'Evening (5 PM - 9 PM)',
-  'Night (9 PM - 6 AM)'
+  'Evening (5 PM - 9 PM)'
 ];
 
 const ReportForm = () => {
@@ -29,12 +28,9 @@ const ReportForm = () => {
     title: '',
     description: '',
     category: 'Electronics',
-    subcategory: '',
     location: '',
     date: '',
     approximateTime: '',
-    email: '',
-    mobile: '',
     whereKept: '',
     otherLocation: '',
   });
@@ -85,22 +81,6 @@ const ReportForm = () => {
     }
 
     if (!form.approximateTime) return toast.error('Please select approximate time');
-    if (!form.mobile.trim() && !form.email.trim()) return toast.error('Please provide mobile or email');
-
-    // Strict Mobile Validation
-    if (form.mobile) {
-      if (!/^\d{10}$/.test(form.mobile)) {
-        return toast.error('Please enter a valid 10-digit mobile number');
-      }
-    }
-
-    // Strict Email Validation
-    if (form.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(form.email)) {
-        return toast.error('Please enter a valid email address');
-      }
-    }
 
     if (tab === 'found' && !imageFile) return toast.error('Image is mandatory for found items');
     return true;
@@ -115,12 +95,8 @@ const ReportForm = () => {
       data.append('title', form.title);
       data.append('description', form.description);
       data.append('category', form.category);
-      if (tab === 'found') data.append('subcategory', form.subcategory);
       data.append('location', form.location);
       data.append('date', form.date);
-      data.append('contactNumber', form.mobile);
-      data.append('email', form.email);
-      data.append('contactPreference', 'mobile');
       data.append('whereKept', form.whereKept);
       data.append('otherLocation', form.otherLocation || '');
 
@@ -203,19 +179,6 @@ const ReportForm = () => {
                 </select>
               </div>
 
-              {tab === 'found' && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subcategory</label>
-                  <input
-                    type="text"
-                    name="subcategory"
-                    value={form.subcategory}
-                    onChange={handleChange}
-                    placeholder="e.g. Laptop, Backpack"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
-                  />
-                </div>
-              )}
             </div>
 
             <div>
@@ -339,31 +302,6 @@ const ReportForm = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Mobile Number *</label>
-                <input
-                  type="text"
-                  name="mobile"
-                  value={form.mobile}
-                  onChange={handleChange}
-                  placeholder="e.g. 9876543210"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Email (Optional)</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="e.g. student@mbu.asia"
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
-                />
-              </div>
             </div>
 
             <button

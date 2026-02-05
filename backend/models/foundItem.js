@@ -21,10 +21,9 @@ const FoundItemSchema = new mongoose.Schema({
   location: { type: String, required: true, trim: true },
   date: { type: String, required: true },
   time: { type: String, default: '' },
-  contactNumber: { type: String, required: true, trim: true },
+  contactNumber: { type: String, required: false, default: '' },
   rollNumber: { type: String, default: '' },
   category: { type: String, required: true },
-  subcategory: { type: String },
   imageUrl: { type: String },
   userId: { type: String },
   userName: { type: String },
@@ -33,7 +32,7 @@ const FoundItemSchema = new mongoose.Schema({
   whereKept: { type: String, default: '' },
   // New canonical statuses: Unclaimed, Claimed, Verified, Returned, Expired, Under Review
   // We keep legacy values in enum temporarily to avoid validation errors during migration
-  status: { type: String, enum: ['Unclaimed','Claimed','Verified','Returned','Expired','Under Review','Active','Frozen'], default: 'Unclaimed' },
+  status: { type: String, enum: ['Unclaimed', 'Claimed', 'Verified', 'Returned', 'Expired', 'Under Review', 'Active', 'Frozen'], default: 'Unclaimed' },
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected', 'removed'], default: 'pending' },
   badge: { type: String, default: null },
   confirmedBy: { type: String, default: null },
@@ -42,7 +41,7 @@ const FoundItemSchema = new mongoose.Schema({
 });
 
 // Simple content check: disallow obviously gibberish titles like 'asdf', 'gdf', short repeated characters
-FoundItemSchema.pre('validate', function(next) {
+FoundItemSchema.pre('validate', function (next) {
   if (this.title) {
     const t = this.title.trim();
     const hasAlpha = /[a-zA-Z]/.test(t);

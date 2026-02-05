@@ -15,39 +15,37 @@ const Gallery = () => {
   const navigate = useNavigate();
   const [connectItem, setConnectItem] = useState(null);
 
-  const [localSearch, setLocalSearch] = useState("");
-  const [filters, setFilters] = useState({
+  // Active filters (triggers fetch)
+  const [activeFilters, setActiveFilters] = useState({
     category: "",
     status: "",
     type: "",
-    location: "",
     q: "",
     startDate: "",
     endDate: "",
-    sort: 'recent',
-    limit: 20
   });
 
-  // Debounce search (300ms)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setFilters(prev => ({ ...prev, q: localSearch }));
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [localSearch]);
+  // Draft filters (bound to UI)
+  const [draftFilters, setDraftFilters] = useState({
+    category: "",
+    status: "",
+    type: "",
+    q: "",
+    startDate: "",
+    endDate: "",
+  });
+
+  // Remove auto-debounce search
+  // Only update q in draft when typing (handled by generic handler now)
 
   const handleSearchSubmit = () => {
-    setFilters((prev) => ({
-      ...prev,
-      q: localSearch
-    }));
+    setActiveFilters(draftFilters);
     setPage(1);
   };
 
   useEffect(() => {
     fetchItems();
-  }, [page, filters]);
+  }, [page, activeFilters]);
 
 
 
@@ -58,16 +56,15 @@ const Gallery = () => {
       // Build query string
       const params = new URLSearchParams({
         page,
-        limit: filters.limit || 20,
-        sort: filters.sort || 'recent'
+        limit: 20, // Fixed limit
+        sort: 'recent' // Fixed sort
       });
-      if (filters.category) params.append('category', filters.category);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.type) params.append('type', filters.type);
-      if (filters.location) params.append('location', filters.location);
-      if (filters.q) params.append('q', filters.q);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (activeFilters.category) params.append('category', activeFilters.category);
+      if (activeFilters.status) params.append('status', activeFilters.status);
+      if (activeFilters.type) params.append('type', activeFilters.type);
+      if (activeFilters.q) params.append('q', activeFilters.q);
+      if (activeFilters.startDate) params.append('startDate', activeFilters.startDate);
+      if (activeFilters.endDate) params.append('endDate', activeFilters.endDate);
 
       const res = await apiFetch(`/api/items?${params.toString()}`, { method: "GET" });
 
@@ -85,8 +82,8 @@ const Gallery = () => {
       const withinRange = itemsArray.filter((it) => {
         const raw = it.date || it.dateFound || it.dateLost;
         const d = raw ? new Date(raw) : null;
-        const s = filters.startDate ? new Date(filters.startDate) : null;
-        const e = filters.endDate ? new Date(filters.endDate) : null;
+        const s = activeFilters.startDate ? new Date(activeFilters.startDate) : null;
+        const e = activeFilters.endDate ? new Date(activeFilters.endDate) : null;
         if (!d) return true;
         if (s && d < s) return false;
         if (e && d > e) return false;
@@ -136,20 +133,14 @@ const Gallery = () => {
     }
   };
 
-  const handleFilterChange = (e) => {
+  const handleDraftChange = (e) => {
     const name = e.target.name;
-    let v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
 
-    // Coerce numeric fields, keep dates as strings
-    if (name === 'limit') v = Number(v);
-
-    setFilters((prev) => ({
+    setDraftFilters((prev) => ({
       ...prev,
       [name]: v,
     }));
-
-    // Reset to first page when filters change
-    setPage(1);
   };
 
   const handleClaim = (item) => {
@@ -268,11 +259,11 @@ const Gallery = () => {
         <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold mb-4 sm:mb-6 lg:mb-8">Browse Lost & Found Items</h1>
 
         {/* Filters */}
-        <div className="mb-6 sm:mb-8 flex gap-2 sm:gap-4 flex-wrap">
+        <div className="mb-6 sm:mb-8 flex gap-2 sm:gap-4 flex-wrap items-end">
           <select
             name="category"
-            value={filters.category}
-            onChange={handleFilterChange}
+            value={draftFilters.category}
+            onChange={handleDraftChange}
             className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
           >
             <option value="">All Categories</option>
@@ -286,8 +277,8 @@ const Gallery = () => {
 
           <select
             name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
+            value={draftFilters.status}
+            onChange={handleDraftChange}
             className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
           >
             <option value="">All Status</option>
@@ -301,8 +292,8 @@ const Gallery = () => {
 
           <select
             name="type"
-            value={filters.type}
-            onChange={handleFilterChange}
+            value={draftFilters.type}
+            onChange={handleDraftChange}
             className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
           >
             <option value="">All Types</option>
@@ -310,75 +301,48 @@ const Gallery = () => {
             <option value="Lost">Lost</option>
           </select>
 
-          <input
-            type="text"
-            name="location"
-            value={filters.location}
-            onChange={handleFilterChange}
-            placeholder="Location"
-            className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
-          />
+          <div className="flex flex-col">
+            <label className="text-xs text-black mb-1 font-semibold">From Date</label>
+            <input
+              type="date"
+              name="startDate"
+              max={new Date().toISOString().split('T')[0]}
+              value={draftFilters.startDate}
+              onChange={handleDraftChange}
+              className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-xs text-black mb-1 font-semibold">To Date</label>
+            <input
+              type="date"
+              name="endDate"
+              max={new Date().toISOString().split('T')[0]}
+              value={draftFilters.endDate}
+              onChange={handleDraftChange}
+              className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
+            />
+          </div>
 
           <div className="relative flex-1 min-w-40 sm:min-w-48">
             <input
               type="text"
               name="q"
               placeholder="Search..."
-              value={localSearch}
-              onChange={(e) => setLocalSearch(e.target.value)}
+              value={draftFilters.q}
+              onChange={handleDraftChange}
               className="w-full px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm pr-10"
             />
             <button
               onClick={handleSearchSubmit}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-600"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600 p-1"
+              title="Search"
             >
               🔍
             </button>
           </div>
 
-          <select
-            name="sort"
-            value={filters.sort}
-            onChange={handleFilterChange}
-            className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
-          >
-            <option value="recent">Newest</option>
-            <option value="oldest">Oldest</option>
-            <option value="title_az">Title A→Z</option>
-          </select>
-
-          <select
-            name="limit"
-            value={filters.limit}
-            onChange={handleFilterChange}
-            className="px-2 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm"
-          >
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-          </select>
-
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-600 mb-1">From Date</label>
-            <input
-              type="date"
-              name="startDate"
-              value={filters.startDate}
-              onChange={handleFilterChange}
-              className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
-            />
-          </div>
-
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-600 mb-1">To Date</label>
-            <input
-              type="date"
-              name="endDate"
-              value={filters.endDate}
-              onChange={handleFilterChange}
-              className="px-2 sm:px-4 py-2 border rounded-lg text-xs sm:text-sm"
-            />
-          </div>
         </div>
 
         {/* NO ITEMS */}

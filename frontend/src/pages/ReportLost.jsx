@@ -17,8 +17,6 @@ const ReportLost = () => {
     exactLocation: '',
     dateLost: '',
     approximateTime: '',
-    contactPreference: 'mobile',
-    email: '',
     mobile: '',
     rollNumber: '',
     whereKept: 'With me',
@@ -33,8 +31,7 @@ const ReportLost = () => {
   const timeOptions = [
     'Morning (6 AM - 12 PM)',
     'Afternoon (12 PM - 5 PM)',
-    'Evening (5 PM - 9 PM)',
-    'Night (9 PM - 6 AM)'
+    'Evening (5 PM - 9 PM)'
   ];
 
   const handleChange = (e) => {
@@ -63,18 +60,8 @@ const ReportLost = () => {
     if (!formData.approximateLocation.trim()) return toast.error('Please enter approximate location');
     if (!formData.dateLost) return toast.error('Please select date lost');
     if (!formData.approximateTime) return toast.error('Please select approximate time');
-
-    if (!formData.mobile.trim() && !formData.email.trim()) {
-      return toast.error('Please provide mobile or email');
-    }
-
-    if (formData.mobile && !/^[0-9]{10}$/.test(formData.mobile)) {
-      return toast.error('Please enter valid 10-digit mobile number');
-    }
-
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-      return toast.error('Please enter valid email');
-    }
+    if (!formData.mobile.trim()) return toast.error('Please provide mobile number');
+    if (!/^[0-9]{10}$/.test(formData.mobile)) return toast.error('Please enter valid 10-digit mobile number');
 
     return true;
   };
@@ -93,10 +80,8 @@ const ReportLost = () => {
       data.append('category', formData.category);
       data.append('location', formData.approximateLocation);
       data.append('date', formData.dateLost);
-      data.append('contactNumber', formData.mobile);
-      data.append('email', formData.email);
+      data.append('mobile', formData.mobile);
       data.append('rollNumber', formData.rollNumber);
-      data.append('contactPreference', formData.contactPreference);
       data.append('whereKept', formData.whereKept);
       data.append('otherLocation', formData.otherLocation || '');
 
@@ -264,7 +249,18 @@ const ReportLost = () => {
               <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Contact Information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
                 <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Roll Number</label>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Mobile Number *</label>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    placeholder="e.g. 9123456789"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Roll Number *</label>
                   <input
                     type="text"
                     name="rollNumber"
@@ -274,31 +270,6 @@ const ReportLost = () => {
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Mobile</label>
-                  <input
-                    type="tel"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                    placeholder="10-digit mobile number"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="your.email@mbu.edu.in"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg text-xs sm:text-sm"
-                  />
-                </div>
-
               </div>
             </div>
 
