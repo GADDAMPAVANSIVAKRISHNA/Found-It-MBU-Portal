@@ -101,13 +101,18 @@ const Gallery = () => {
     }
   };
 
-  const handleConnect = async (item) => {
+  const createChat = async (item) => {
     if (!user) {
       toast.error("Please login to connect");
       return;
     }
 
     try {
+      if (!item.userId && !item.userEmail) {
+        toast.error("This item has no registered owner to chat with.");
+        return;
+      }
+
       // Ensure we send a clean ID and correct type
       const rawId = item._id ? item._id.toString() : '';
       const cleanId = rawId.replace(/^(found_|lost_)/, '');
@@ -118,6 +123,7 @@ const Gallery = () => {
         body: JSON.stringify({
           itemId: cleanId,
           ownerId: item.userId,
+          ownerEmail: item.userEmail, // Fallback for backend lookup
           itemType: item.itemType
         })
       });
@@ -249,9 +255,15 @@ const Gallery = () => {
           onClose={() => setConnectItem(null)}
           onChat={(item) => {
             // Close modal is handled in processClaim, but we can do it here too to be safe
-            // However, processClaim expects item. 
-            // processClaim will freeze the item and then navigate to chat.
-            processClaim(item);
+            setConnectItem(null);
+
+            if (item.itemType === 'Found') {
+              // Confirm claim -> Freeze -> Chat
+              processClaim(item);
+            } else {
+              // Lost item -> Just Chat (Notify Owner)
+              createChat(item);
+            }
           }}
         />
       )}
@@ -403,9 +415,9 @@ const Gallery = () => {
 
                     {/* Location + Date */}
                     <div className="text-xs sm:text-sm text-gray-600 mb-3 space-y-0.5">
-                      <p>📍 {item.location || item.approximateLocation}</p>
+                      <p><span className="font-semibold">Location:</span> {item.location || item.approximateLocation}</p>
                       <p>
-                        📅{" "}
+                        <span className="font-semibold">Date:</span>{" "}
                         {new Date(
                           item.date || item.dateFound || item.dateLost
                         ).toLocaleDateString("en-IN", {
@@ -461,7 +473,7 @@ const Gallery = () => {
 
                             return (
                               <div className="flex flex-col gap-2 w-full">
-                                <button className="w-full px-3 py-2 rounded text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleConnect(item)}>
+                                <button className="w-full px-3 py-2 rounded text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => createChat(item)}>
                                   ✉️ {label}
                                 </button>
                                 {isReceiver && (
@@ -500,7 +512,7 @@ const Gallery = () => {
 
                         // For lost items: I Found This (contact owner)
                         return (
-                          <button className="w-full px-3 py-2 rounded text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleConnect(item)}>
+                          <button className="w-full px-3 py-2 rounded text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition shadow-sm flex items-center justify-center gap-2" onClick={() => handleClaim(item)}>
                             I Found This
                           </button>
                         );
@@ -553,6 +565,10 @@ const ContactModal = ({ item, onClose, onChat }) => {
   const rollNumber = item.rollNumber || (item.userEmail ? item.userEmail.split('@')[0] : 'N/A');
   const finderName = item.userName || 'Finder';
 
+  const isFoundItem = item.itemType === 'Found';
+  const title = isFoundItem ? 'Contact Finder' : 'Contact Owner';
+  const subtitle = isFoundItem ? 'Item found by' : 'Item reported by';
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform scale-100 transition-all">
@@ -560,8 +576,8 @@ const ContactModal = ({ item, onClose, onChat }) => {
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">👤</span>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-1">Contact Finder</h3>
-          <p className="text-sm text-gray-500">Item found by {finderName}</p>
+          <h3 className="text-xl font-bold text-gray-900 mb-1">{title}</h3>
+          <p className="text-sm text-gray-500">{subtitle} {rollNumber}</p>
         </div>
 
         <div className="space-y-4 mb-8">
@@ -604,7 +620,7 @@ const ContactModal = ({ item, onClose, onChat }) => {
             }}
             className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
           >
-            <span>💬</span> Chat with {finderName.split(' ')[0]}
+            <span>💬</span> Chat
           </button>
         </div>
       </div>

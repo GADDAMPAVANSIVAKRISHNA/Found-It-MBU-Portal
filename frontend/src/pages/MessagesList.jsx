@@ -40,7 +40,7 @@ const MessagesList = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-semibold text-gray-800">{chat.item?.title || 'Item'}</h3>
-                    <p className="text-sm text-gray-600">{otherUser?.name || 'User'}</p>
+                    <p className="text-sm text-gray-600">{otherUser?.email?.split('@')[0] || otherUser?.name || 'User'}</p>
                   </div>
                   <div className="text-xs text-gray-400">
                     {new Date(chat.updatedAt).toLocaleDateString()}

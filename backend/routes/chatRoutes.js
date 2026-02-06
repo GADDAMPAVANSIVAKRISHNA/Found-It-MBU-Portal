@@ -17,16 +17,25 @@ const parseItemId = (rawId) => {
   // Fallback if no prefix (legacy or direct ID) - assume FoundItem or check both?
   // For safety, let's assume FoundItem if unknown, or try to find in both. 
   // But mostly frontend sends prefixed ID from /gallery.
-  return { id: rawId, model: 'FoundItem' }; 
+  return { id: rawId, model: 'FoundItem' };
 };
 
 // POST /api/chats - Create or find chat
 router.post('/', auth, async (req, res) => {
   try {
-    const { itemId, ownerId, itemType } = req.body;
-    
+    let { itemId, ownerId, itemType, ownerEmail } = req.body;
+
+    // Fallback: If no ownerId but we have an email, try to find the user
+    if (!ownerId && ownerEmail) {
+      const ownerUser = await User.findOne({ email: ownerEmail });
+      if (ownerUser) {
+        ownerId = ownerUser._id.toString();
+      }
+    }
+
     if (!itemId || !ownerId) {
-      return res.status(400).json({ error: 'Missing itemId or ownerId' });
+      // If still missing after lookup attempt
+      return res.status(400).json({ error: 'Missing itemId or ownerId (and email lookup failed)' });
     }
 
     if (ownerId === req.user._id.toString()) {
@@ -41,7 +50,7 @@ router.post('/', auth, async (req, res) => {
     if (itemType) {
       if (itemType === 'Found' || itemType === 'FoundItem') itemModel = 'FoundItem';
       else if (itemType === 'Lost' || itemType === 'LostItem') itemModel = 'LostItem';
-      
+
       // Clean prefix if present
       realItemId = itemId.replace(/^(found_|lost_)/, '');
     } else {
@@ -53,7 +62,7 @@ router.post('/', auth, async (req, res) => {
 
     // Verify item exists
     let ItemModel = itemModel === 'FoundItem' ? FoundItem : LostItem;
-    
+
     // Validate ID format
     if (!mongoose.Types.ObjectId.isValid(realItemId)) {
       return res.status(400).json({ error: 'Invalid Item ID format' });
@@ -65,7 +74,7 @@ router.post('/', auth, async (req, res) => {
       // Fallback: Try the other model
       const OtherModel = itemModel === 'FoundItem' ? LostItem : FoundItem;
       const otherItem = await OtherModel.findById(realItemId);
-      
+
       if (otherItem) {
         itemExists = otherItem;
         itemModel = itemModel === 'FoundItem' ? 'LostItem' : 'FoundItem';
@@ -83,8 +92,8 @@ router.post('/', auth, async (req, res) => {
       itemModel: itemModel,
       participants: { $all: [req.user._id, ownerId] }
     })
-    .populate('participants', 'name email')
-    .populate({ path: 'item', model: itemModel }); // Dynamic populate
+      .populate('participants', 'name email')
+      .populate({ path: 'item', model: itemModel }); // Dynamic populate
 
     if (existingChat) {
       return res.json({ chat: existingChat });
@@ -98,7 +107,7 @@ router.post('/', auth, async (req, res) => {
     });
 
     await newChat.save();
-    
+
     // Populate before returning
     await newChat.populate('participants', 'name email');
     // await newChat.populate({ path: 'item', model: itemModel });
@@ -120,7 +129,7 @@ router.get('/', auth, async (req, res) => {
 
     // Manually populate item because of dynamic refPath (or let Mongoose handle it if schema is correct)
     // Since schema has refPath: 'itemModel', Mongoose should handle populate('item') automatically if itemModel is set.
-    await Chat.populate(chats, { path: 'item' }); 
+    await Chat.populate(chats, { path: 'item' });
     // Note: If itemModel is 'FoundItem', it looks up 'FoundItem' model.
 
     res.json({ chats });

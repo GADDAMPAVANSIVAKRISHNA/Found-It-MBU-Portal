@@ -33,6 +33,27 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 // Firebase auth
 import { auth } from "./lib/firebase";
 
+// Helper to hide footer on chat pages
+function FooterWrapper() {
+  const { pathname } = window.location; // or useLocation if inside Router, but Router is wrapping App content
+  // Actually, we can't use useLocation here because App IS the Router provider.
+  // Wait, Router is inside App. So we need a component INSIDE Router to use useLocation.
+
+  // Let's create a small inner component
+  return <FooterContent />;
+}
+
+import { useLocation } from "react-router-dom";
+
+function FooterContent() {
+  const location = useLocation();
+  const isChatPage = location.pathname.startsWith('/chat');
+
+  if (isChatPage) return null;
+
+  return <Footer />;
+}
+
 function App() {
 
   // 🔥 Debug: Print current Firebase user
@@ -43,11 +64,11 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen">
+        <div className="flex flex-col min-h-screen">
           <Navbar />
           <ActionPopup />
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-          <main className="min-h-screen">
+          <main className="flex-1 relative">
             <Suspense fallback={<div className="p-6 text-center">Loading...</div>}>
               <Routes>
 
@@ -130,7 +151,7 @@ function App() {
             </Suspense>
           </main>
 
-          <Footer />
+          <FooterContent />
 
         </div>
       </Router>
