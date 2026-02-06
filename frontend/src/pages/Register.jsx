@@ -95,7 +95,11 @@ const Register = () => {
 
     } catch (err) {
       console.error('Register error', err);
-      setError(err?.message || 'Registration failed');
+      if (err.code === 'auth/email-already-in-use' || err.message?.includes('email-already-in-use')) {
+        setError('Email already in use');
+      } else {
+        setError(err?.message || 'Registration failed');
+      }
       setLoading(false);
     }
   };
